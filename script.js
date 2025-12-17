@@ -1,15 +1,13 @@
-// Global Variables
+// ========== YOUR CREDENTIALS ==========
+const JSONBIN_BIN_ID = "6942d4d443b1c97be9f4cf62";
+const JSONBIN_API_KEY = "$2a$10$TSxWjP8KeL2sCsGcfRtI.uxlpOLk2c2yTg3Qn8loL1z5d8OHN87fO";
+// ======================================
+
 let currentMonth = 0;
 let attendanceData = {};
 let pendingChanges = {};
 let hasUnsavedChanges = false;
 
-// YOUR GITHUB INFO - CHANGE THESE 3 LINES
-const GITHUB_USERNAME = "NNPPSGBSGMA";  // Replace with your GitHub username
-const GITHUB_REPO = "GMA-attendance";     // Replace with your repository name
-const GITHUB_BRANCH = "main";              // Usually "main" or "master"
-
-// Holidays for 2026
 const HOLIDAYS_2026 = [
     '2026-01-15', '2026-01-26', '2026-03-19', '2026-05-01',
     '2026-05-28', '2026-09-14', '2026-10-02', '2026-10-20',
@@ -26,64 +24,61 @@ const STATUS_OPTIONS = [
     { value: 'leave', label: 'Leave', color: '#FFB6C1' }
 ];
 
-// Initialize Calendar on Load
 function initializeCalendar() {
     loadAttendanceData();
-    renderCalendar();
 }
 
-// Load Attendance Data from GitHub
 async function loadAttendanceData() {
     try {
-        const url = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/data.json`;
-        const response = await fetch(url);
+        const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+            headers: {
+                'X-Master-Key': JSONBIN_API_KEY
+            }
+        });
         
         if (response.ok) {
             const data = await response.json();
-            attendanceData = data;
-            console.log('Data loaded from GitHub successfully');
+            attendanceData = data.record || {};
+            console.log('? Data loaded from server');
         } else {
-            console.log('No existing data found, starting fresh');
+            console.log('No data found, starting fresh');
             attendanceData = {};
         }
     } catch (error) {
-        console.log('Loading from local storage as fallback');
-        const saved = localStorage.getItem('attendanceData_2026');
-        if (saved) {
-            attendanceData = JSON.parse(saved);
-        }
+        console.error('Error loading data:', error);
+        attendanceData = {};
     }
+    
     renderCalendar();
 }
 
-// Save Attendance Data to GitHub
 async function saveAttendanceData() {
-    // Save to localStorage as backup
-    localStorage.setItem('attendanceData_2026', JSON.stringify(attendanceData));
-    
-    // Show instruction to commit
-    alert('DATA SAVED LOCALLY!\n\nTo share with team:\n1. Copy the data below\n2. Go to your GitHub repository\n3. Edit data.json file\n4. Paste the copied data\n5. Commit changes\n\nData copied to clipboard!');
-    
-    // Copy data to clipboard
-    const dataString = JSON.stringify(attendanceData, null, 2);
-    navigator.clipboard.writeText(dataString);
-    
-    // Also download as backup
-    downloadDataFile(dataString);
+    try {
+        const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Master-Key': JSONBIN_API_KEY
+            },
+            body: JSON.stringify(attendanceData)
+        });
+        
+        if (response.ok) {
+            console.log('? Data saved to server automatically');
+            return true;
+        } else {
+            const errorData = await response.json();
+            console.error('Failed to save:', errorData);
+            alert('Failed to save data: ' + (errorData.message || 'Unknown error'));
+            return false;
+        }
+    } catch (error) {
+        console.error('Error saving data:', error);
+        alert('Error saving data. Check console for details.');
+        return false;
+    }
 }
 
-// Download data as file
-function downloadDataFile(dataString) {
-    const blob = new Blob([dataString], { type: 'application/json' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'data.json';
-    a.click();
-    window.URL.revokeObjectURL(url);
-}
-
-// Get Days in Month
 function getDaysInMonth(year, month) {
     return new Date(year, month + 1, 0).getDate();
 }
@@ -103,7 +98,6 @@ function formatDate(day, month) {
     return day + '-' + MONTH_ABBR[month];
 }
 
-// Render Calendar Table
 function renderCalendar() {
     const table = document.getElementById('attendanceTable');
     const year = 2026;
@@ -303,25 +297,34 @@ function renderCellContent(cell, userCode, dateKey, day, month) {
     cell.appendChild(cellContent);
 }
 
-function submitAttendance() {
+async function submitAttendance() {
     if (!hasUnsavedChanges) {
         return;
     }
     
-    saveAttendanceData();
-    pendingChanges = {};
-    hasUnsavedChanges = false;
-    
     document.getElementById('submitBtn').disabled = true;
-    document.getElementById('pendingChanges').style.display = 'none';
+    document.getElementById('submitBtn').textContent = 'Saving...';
     
-    const successMsg = document.getElementById('successMessage');
-    successMsg.style.display = 'block';
-    setTimeout(() => {
-        successMsg.style.display = 'none';
-    }, 3000);
+    const success = await saveAttendanceData();
     
-    updateStats();
+    if (success) {
+        pendingChanges = {};
+        hasUnsavedChanges = false;
+        document.getElementById('pendingChanges').style.display = 'none';
+        
+        const successMsg = document.getElementById('successMessage');
+        successMsg.textContent = '? Data saved to server! Everyone can now see your changes.';
+        successMsg.style.display = 'block';
+        setTimeout(() => {
+            successMsg.style.display = 'none';
+        }, 3000);
+        
+        updateStats();
+    } else {
+        document.getElementById('submitBtn').disabled = false;
+    }
+    
+    document.getElementById('submitBtn').textContent = 'Submit My Attendance';
 }
 
 function changeMonth() {
@@ -430,28 +433,17 @@ function generateReport() {
     const daysInMonth = getDaysInMonth(year, month);
     
     let reportHTML = '<h3>Attendance Report - ' + monthName + ' 2026</h3>';
-    reportHTML += '<div class="report-table-wrapper">';
-    reportHTML += '<table class="report-table">';
-    reportHTML += '<thead><tr>';
-    reportHTML += '<th>User</th><th>WFO</th><th>Planned</th><th>Offsite</th><th>Travel</th><th>Leave</th><th>Total Days</th>';
-    reportHTML += '</tr></thead><tbody>';
+    reportHTML += '<div class="report-table-wrapper"><table class="report-table">';
+    reportHTML += '<thead><tr><th>User</th><th>WFO</th><th>Planned</th><th>Offsite</th><th>Travel</th><th>Leave</th><th>Total Days</th></tr></thead><tbody>';
     
     Object.keys(USERS).forEach(userCode => {
-        let stats = {
-            wfo: 0,
-            planned: 0,
-            offsite: 0,
-            travel: 0,
-            leave: 0,
-            total: 0
-        };
+        let stats = { wfo: 0, planned: 0, offsite: 0, travel: 0, leave: 0, total: 0 };
         
         for (let day = 1; day <= daysInMonth; day++) {
             const dateKey = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
             
             if (!isWeekend(year, month, day) && !isHoliday(year, month, day)) {
                 stats.total++;
-                
                 if (attendanceData[userCode] && attendanceData[userCode][dateKey]) {
                     const status = attendanceData[userCode][dateKey];
                     if (stats.hasOwnProperty(status)) {
@@ -461,19 +453,12 @@ function generateReport() {
             }
         }
         
-        reportHTML += '<tr>';
-        reportHTML += '<td><strong>' + userCode + '</strong></td>';
-        reportHTML += '<td>' + stats.wfo + '</td>';
-        reportHTML += '<td>' + stats.planned + '</td>';
-        reportHTML += '<td>' + stats.offsite + '</td>';
-        reportHTML += '<td>' + stats.travel + '</td>';
-        reportHTML += '<td>' + stats.leave + '</td>';
-        reportHTML += '<td><strong>' + stats.total + '</strong></td>';
-        reportHTML += '</tr>';
+        reportHTML += '<tr><td><strong>' + userCode + '</strong></td>';
+        reportHTML += '<td>' + stats.wfo + '</td><td>' + stats.planned + '</td><td>' + stats.offsite + '</td>';
+        reportHTML += '<td>' + stats.travel + '</td><td>' + stats.leave + '</td><td><strong>' + stats.total + '</strong></td></tr>';
     });
     
     reportHTML += '</tbody></table></div>';
-    
     reportContent.innerHTML = reportHTML;
     modal.style.display = 'block';
 }
@@ -488,9 +473,7 @@ function exportToCSV() {
     const monthName = new Date(year, month).toLocaleDateString('en-US', { month: 'long' });
     const daysInMonth = getDaysInMonth(year, month);
     
-    let csv = 'Attendance Report - ' + monthName + ' 2026\n\n';
-    csv += 'User,';
-    
+    let csv = 'Attendance Report - ' + monthName + ' 2026\n\nUser,';
     for (let day = 1; day <= daysInMonth; day++) {
         csv += formatDate(day, month) + ',';
     }
@@ -498,10 +481,8 @@ function exportToCSV() {
     
     Object.keys(USERS).forEach(userCode => {
         csv += userCode + ',';
-        
         for (let day = 1; day <= daysInMonth; day++) {
             const dateKey = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
-            
             if (isWeekend(year, month, day)) {
                 csv += 'Weekend,';
             } else if (isHoliday(year, month, day)) {
@@ -512,7 +493,6 @@ function exportToCSV() {
                 csv += '-,';
             }
         }
-        
         csv += '\n';
     });
     
@@ -531,30 +511,18 @@ function exportReportToCSV() {
     const monthName = new Date(year, month).toLocaleDateString('en-US', { month: 'long' });
     const daysInMonth = getDaysInMonth(year, month);
     
-    let csv = 'Comprehensive Attendance Report - ' + monthName + ' 2026\n\n';
-    csv += 'User,WFO,Planned,Offsite,Travel,Leave,Total Working Days\n';
+    let csv = 'Comprehensive Attendance Report - ' + monthName + ' 2026\n\nUser,WFO,Planned,Offsite,Travel,Leave,Total Working Days\n';
     
     Object.keys(USERS).forEach(userCode => {
-        let stats = {
-            wfo: 0,
-            planned: 0,
-            offsite: 0,
-            travel: 0,
-            leave: 0,
-            total: 0
-        };
+        let stats = { wfo: 0, planned: 0, offsite: 0, travel: 0, leave: 0, total: 0 };
         
         for (let day = 1; day <= daysInMonth; day++) {
             const dateKey = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
-            
             if (!isWeekend(year, month, day) && !isHoliday(year, month, day)) {
                 stats.total++;
-                
                 if (attendanceData[userCode] && attendanceData[userCode][dateKey]) {
                     const status = attendanceData[userCode][dateKey];
-                    if (stats.hasOwnProperty(status)) {
-                        stats[status]++;
-                    }
+                    if (stats.hasOwnProperty(status)) stats[status]++;
                 }
             }
         }
