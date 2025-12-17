@@ -1,8 +1,7 @@
 // ============================================
-// STEP 1: SETUP YOUR NPOINT URL HERE
+// NPOINT URL - UPDATE THIS
 // ============================================
-// Go to https://www.npoint.io/ ? Type {} ? Click Save ? Copy URL ? Paste below
-const NPOINT_URL = 'https://api.npoint.io/9b394f97261bd28fcb7a';  // ? Replace with YOUR npoint URL
+const NPOINT_URL = 'https://api.npoint.io/9b394f97261bd28fcb7a';
 
 // ============================================
 // USER CREDENTIALS
@@ -40,25 +39,19 @@ const USERS = {
     'USRJ': { password: 'Usrj@2026%Gma', isAdmin: false, name: 'USRJ' },
     'SYDQ': { password: 'Sydq$2026&Pps', isAdmin: false, name: 'SYDQ' },
     'GVMR': { password: 'Gvmr#2026*Gbs', isAdmin: false, name: 'GVMR' },
-    'NUMT': { password: 'Numt!2026@Med', isAdmin: true, name: 'NUMT' },
+    'NUMT': { password: 'Numt!2026@Med', isAdmin: false, name: 'NUMT' },
     'MGVM': { password: 'Mgvm@2026!Aff', isAdmin: false, name: 'MGVM' },
     'JVMC': { password: 'Jvmc$2026#Blr', isAdmin: false, name: 'JVMC' },
     'SIZR': { password: 'Sizr#2026$Ind', isAdmin: false, name: 'SIZR' },
     'IUHK': { password: 'Iuhk!2026%Att', isAdmin: false, name: 'IUHK' }
 };
 
-// ============================================
-// HOLIDAYS 2026
-// ============================================
 const HOLIDAYS = [
     '2026-01-15', '2026-01-26', '2026-03-19', '2026-05-01',
     '2026-05-28', '2026-09-14', '2026-10-02', '2026-10-20',
     '2026-11-10', '2026-12-25'
 ];
 
-// ============================================
-// STATUS OPTIONS
-// ============================================
 const STATUSES = [
     { value: 'wfo', label: 'WFO' },
     { value: 'planned', label: 'Planned' },
@@ -67,9 +60,6 @@ const STATUSES = [
     { value: 'leave', label: 'Leave' }
 ];
 
-// ============================================
-// GLOBAL STATE
-// ============================================
 let currentUser = null;
 let currentMonth = 0;
 let allData = {};
@@ -77,38 +67,123 @@ let unsavedChanges = false;
 let refreshTimer = null;
 
 // ============================================
-// LOGIN FUNCTION
+// IMPROVED LOAD FROM SERVER WITH BETTER ERROR HANDLING
 // ============================================
+async function loadFromServer() {
+    showLoading(true);
+    try {
+        console.log('Attempting to load from:', NPOINT_URL);
+        
+        const response = await fetch(NPOINT_URL, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Data received:', data);
+        
+        allData = (Object.keys(data).length === 0) ? {} : data;
+        console.log('Data loaded successfully');
+        showLoading(false);
+        return true;
+        
+    } catch (error) {
+        console.error('DETAILED ERROR:', error);
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        
+        showLoading(false);
+        
+        // More specific error messages
+        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+            alert('❌ NETWORK ERROR\n\nCannot connect to npoint.io\n\nPossible causes:\n1. Check your internet connection\n2. npoint.io might be down\n3. CORS issue\n\nTrying to continue with empty data...');
+        } else {
+            alert('❌ ERROR LOADING DATA\n\n' + error.message + '\n\nCheck browser console (F12) for details.\n\nTrying to continue with empty data...');
+        }
+        
+        allData = {};
+        return false;
+    }
+}
+
+// ============================================
+// IMPROVED SAVE TO SERVER
+// ============================================
+async function saveToServer() {
+    showLoading(true);
+    try {
+        console.log('Attempting to save to:', NPOINT_URL);
+        console.log('Data to save:', allData);
+        
+        const response = await fetch(NPOINT_URL, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(allData)
+        });
+        
+        console.log('Save response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('Save successful:', result);
+        
+        showLoading(false);
+        showSuccess('Attendance saved successfully!');
+        return true;
+        
+    } catch (error) {
+        console.error('SAVE ERROR:', error);
+        showLoading(false);
+        alert('❌ FAILED TO SAVE\n\n' + error.message + '\n\nYour changes were NOT saved.\n\nCheck console (F12) for details.');
+        return false;
+    }
+}
+
 async function handleLogin(event) {
     event.preventDefault();
     
     const code = document.getElementById('loginCode').value.toUpperCase().trim();
     const password = document.getElementById('loginPassword').value;
     
-    // Check credentials
     if (USERS[code] && USERS[code].password === password) {
         currentUser = { code: code, isAdmin: USERS[code].isAdmin };
         
-        // Hide login, show app
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
         
-        // Update user display
         document.getElementById('displayUserCode').textContent = 'User: ' + code;
         document.getElementById('securityUserCode').textContent = code;
         
-        // Show admin features if admin
         if (currentUser.isAdmin) {
             document.getElementById('adminNotice').style.display = 'block';
             document.getElementById('reportBtn').style.display = 'inline-block';
         }
         
-        // Load data and start
-        await loadFromServer();
+        const loaded = await loadFromServer();
         drawCalendar();
-        startAutoRefresh();
+        
+        if (loaded) {
+            startAutoRefresh();
+        } else {
+            alert('⚠️ WARNING\n\nCould not load data from server.\n\nYou can still use the app, but data might not sync.\n\nPlease check your npoint URL and internet connection.');
+        }
+        
     } else {
-        // Show error
         document.getElementById('loginError').style.display = 'block';
         setTimeout(() => {
             document.getElementById('loginError').style.display = 'none';
@@ -116,9 +191,6 @@ async function handleLogin(event) {
     }
 }
 
-// ============================================
-// LOGOUT FUNCTION
-// ============================================
 function handleLogout() {
     if (confirm('Logout? Unsaved changes will be lost.')) {
         stopAutoRefresh();
@@ -133,55 +205,11 @@ function handleLogout() {
     }
 }
 
-// ============================================
-// LOAD DATA FROM SERVER
-// ============================================
-async function loadFromServer() {
-    showLoading(true);
-    try {
-        const response = await fetch(NPOINT_URL);
-        if (response.ok) {
-            const data = await response.json();
-            allData = (Object.keys(data).length === 0) ? {} : data;
-        }
-    } catch (error) {
-        console.error('Load error:', error);
-        alert('Could not load data from server.');
-    }
-    showLoading(false);
-}
-
-// ============================================
-// SAVE DATA TO SERVER
-// ============================================
-async function saveToServer() {
-    showLoading(true);
-    try {
-        const response = await fetch(NPOINT_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(allData)
-        });
-        
-        if (response.ok) {
-            showSuccess('Attendance saved successfully!');
-            return true;
-        }
-    } catch (error) {
-        console.error('Save error:', error);
-        alert('Failed to save. Please try again.');
-    }
-    showLoading(false);
-    return false;
-}
-
-// ============================================
-// AUTO-REFRESH (every 30 seconds)
-// ============================================
 function startAutoRefresh() {
     stopAutoRefresh();
     refreshTimer = setInterval(async () => {
         if (!unsavedChanges) {
+            console.log('Auto-refreshing data...');
             await loadFromServer();
             drawCalendar();
         }
@@ -192,9 +220,6 @@ function stopAutoRefresh() {
     if (refreshTimer) clearInterval(refreshTimer);
 }
 
-// ============================================
-// DRAW CALENDAR TABLE
-// ============================================
 function drawCalendar() {
     const table = document.getElementById('attendanceTable');
     const year = 2026;
@@ -203,7 +228,6 @@ function drawCalendar() {
     
     table.innerHTML = '';
     
-    // Header row with dates
     const headerRow = table.insertRow();
     headerRow.insertCell().innerHTML = '<th class="name-header">Name</th>';
     
@@ -219,21 +243,17 @@ function drawCalendar() {
         cell.innerHTML = `<th class="${className}">${day}-${getMonthAbbr(month)}<br><small>${dayName}</small></th>`;
     }
     
-    // User rows
     Object.keys(USERS).forEach(userCode => {
         const row = table.insertRow();
         
-        // Highlight current user's row
         if (currentUser && currentUser.code === userCode) {
             row.classList.add('current-user-row');
         }
         
-        // Name cell
         const nameCell = row.insertCell();
         nameCell.className = 'name-cell';
         nameCell.textContent = userCode;
         
-        // Date cells
         for (let day = 1; day <= days; day++) {
             const date = new Date(year, month, day);
             const dateKey = formatDateKey(date);
@@ -250,16 +270,14 @@ function drawCalendar() {
                 cell.classList.add('holiday');
                 cell.textContent = `${day}-${getMonthAbbr(month)}`;
             } else {
-                // Regular working day
                 const canEdit = canUserEdit(userCode);
                 const status = allData[userCode]?.[dateKey];
                 
                 if (status) cell.classList.add(status);
                 
-                // Show lock icon if not editable
                 if (!canEdit) {
                     cell.classList.add('locked');
-                    cell.innerHTML = '<span class="lock-icon">?</span>' + `${day}-${getMonthAbbr(month)}`;
+                    cell.innerHTML = '<span class="lock-icon">🔒</span>' + `${day}-${getMonthAbbr(month)}`;
                 } else {
                     cell.textContent = `${day}-${getMonthAbbr(month)}`;
                     cell.onclick = () => showStatusDropdown(cell, userCode, dateKey);
@@ -271,37 +289,28 @@ function drawCalendar() {
     document.getElementById('monthSelector').value = currentMonth;
 }
 
-// ============================================
-// SHOW STATUS DROPDOWN
-// ============================================
 function showStatusDropdown(cell, userCode, dateKey) {
-    // Don't show if already has dropdown
     if (cell.querySelector('select')) return;
     
     const currentStatus = allData[userCode]?.[dateKey] || '';
     
-    // Create dropdown
     const select = document.createElement('select');
     select.className = 'status-select';
     
-    // Add empty option
     select.add(new Option('-- Select --', ''));
     
-    // Add status options
     STATUSES.forEach(s => {
         const opt = new Option(s.label, s.value);
         if (s.value === currentStatus) opt.selected = true;
         select.add(opt);
     });
     
-    // Handle selection
     select.onchange = () => {
         updateStatus(userCode, dateKey, select.value);
         cell.innerHTML = '';
         drawCalendar();
     };
     
-    // Handle clicking away
     select.onblur = () => {
         setTimeout(() => {
             if (document.activeElement !== select) {
@@ -316,30 +325,21 @@ function showStatusDropdown(cell, userCode, dateKey) {
     select.focus();
 }
 
-// ============================================
-// UPDATE STATUS
-// ============================================
 function updateStatus(userCode, dateKey, status) {
-    // Initialize user data if needed
     if (!allData[userCode]) allData[userCode] = {};
     
-    // Update or remove status
     if (status) {
         allData[userCode][dateKey] = status;
     } else {
         delete allData[userCode][dateKey];
     }
     
-    // Mark as having unsaved changes
     unsavedChanges = true;
     document.getElementById('submitBtn').disabled = false;
     document.getElementById('pendingChanges').style.display = 'inline';
     document.getElementById('pendingUserCode').textContent = currentUser.code;
 }
 
-// ============================================
-// SUBMIT ATTENDANCE
-// ============================================
 async function submitAttendance() {
     if (!unsavedChanges) return;
     
@@ -356,9 +356,6 @@ async function submitAttendance() {
     }
 }
 
-// ============================================
-// CHANGE MONTH
-// ============================================
 function changeMonth() {
     const newMonth = parseInt(document.getElementById('monthSelector').value);
     
@@ -377,9 +374,6 @@ function changeMonth() {
     checkStats();
 }
 
-// ============================================
-// UPDATE STATISTICS
-// ============================================
 function updateStats() {
     if (!currentUser) return;
     
@@ -409,45 +403,27 @@ function updateStats() {
         <div class="stats-grid">
             <div class="stat-item wfo-stat">
                 <div class="stat-color wfo-color"></div>
-                <div>
-                    <div class="stat-label">WFO</div>
-                    <div class="stat-value">${stats.wfo} days</div>
-                </div>
+                <div><div class="stat-label">WFO</div><div class="stat-value">${stats.wfo} days</div></div>
             </div>
             <div class="stat-item planned-stat">
                 <div class="stat-color planned-color"></div>
-                <div>
-                    <div class="stat-label">Planned</div>
-                    <div class="stat-value">${stats.planned} days</div>
-                </div>
+                <div><div class="stat-label">Planned</div><div class="stat-value">${stats.planned} days</div></div>
             </div>
             <div class="stat-item offsite-stat">
                 <div class="stat-color offsite-color"></div>
-                <div>
-                    <div class="stat-label">Offsite/Meeting</div>
-                    <div class="stat-value">${stats.offsite} days</div>
-                </div>
+                <div><div class="stat-label">Offsite/Meeting</div><div class="stat-value">${stats.offsite} days</div></div>
             </div>
             <div class="stat-item travel-stat">
                 <div class="stat-color travel-color"></div>
-                <div>
-                    <div class="stat-label">Onsite/Travel</div>
-                    <div class="stat-value">${stats.travel} days</div>
-                </div>
+                <div><div class="stat-label">Onsite/Travel</div><div class="stat-value">${stats.travel} days</div></div>
             </div>
             <div class="stat-item leave-stat">
                 <div class="stat-color leave-color"></div>
-                <div>
-                    <div class="stat-label">Leave</div>
-                    <div class="stat-value">${stats.leave} days</div>
-                </div>
+                <div><div class="stat-label">Leave</div><div class="stat-value">${stats.leave} days</div></div>
             </div>
             <div class="stat-item total-stat">
                 <div class="stat-color total-color"></div>
-                <div>
-                    <div class="stat-label">Working Days</div>
-                    <div class="stat-value">${stats.total} days</div>
-                </div>
+                <div><div class="stat-label">Working Days</div><div class="stat-value">${stats.total} days</div></div>
             </div>
         </div>
     `;
@@ -463,7 +439,6 @@ function checkStats() {
     const month = currentMonth;
     const days = new Date(year, month + 1, 0).getDate();
     
-    // Check if user has any data this month
     for (let day = 1; day <= days; day++) {
         const date = new Date(year, month, day);
         const dateKey = formatDateKey(date);
@@ -476,9 +451,6 @@ function checkStats() {
     document.getElementById('statsContainer').style.display = 'none';
 }
 
-// ============================================
-// GENERATE REPORT (Admin Only)
-// ============================================
 function generateReport() {
     if (!currentUser?.isAdmin) {
         alert('Only administrators can generate reports.');
@@ -530,9 +502,6 @@ function closeReportModal() {
     document.getElementById('reportModal').style.display = 'none';
 }
 
-// ============================================
-// EXPORT TO CSV
-// ============================================
 function exportToCSV() {
     const year = 2026;
     const month = currentMonth;
@@ -608,9 +577,6 @@ function downloadCSV(content, filename) {
     window.URL.revokeObjectURL(url);
 }
 
-// ============================================
-// HELPER FUNCTIONS
-// ============================================
 function isWeekend(date) {
     const day = date.getDay();
     return day === 0 || day === 6;
@@ -643,14 +609,11 @@ function showLoading(show) {
 
 function showSuccess(message) {
     const msg = document.getElementById('successMessage');
-    msg.textContent = '? ' + message;
+    msg.textContent = '✓ ' + message;
     msg.style.display = 'block';
     setTimeout(() => msg.style.display = 'none', 3000);
 }
 
-// ============================================
-// CLOSE MODAL ON OUTSIDE CLICK
-// ============================================
 window.onclick = function(event) {
     const modal = document.getElementById('reportModal');
     if (event.target === modal) {
