@@ -1,7 +1,11 @@
 // ============================================
-// NPOINT URL - UPDATE THIS
+// GITHUB GIST CONFIGURATION
 // ============================================
-const NPOINT_URL = 'https://api.npoint.io/9b394f97261bd28fcb7a';
+const CONFIG = {
+    GIST_ID: 'c3bbde6b0b415d146a1485af8d44b672',  // ← Paste your Gist ID here
+    GITHUB_TOKEN: 'https://gist.github.com/NNPPSGBSGMA/c3bbde6b0b415d146a1485af8d44b672',  // ← Paste your token here
+    FILENAME: 'attendance-data.json'
+};
 
 // ============================================
 // USER CREDENTIALS
@@ -67,93 +71,74 @@ let unsavedChanges = false;
 let refreshTimer = null;
 
 // ============================================
-// IMPROVED LOAD FROM SERVER WITH BETTER ERROR HANDLING
+// GITHUB GIST FUNCTIONS
 // ============================================
-async function loadFromServer() {
+async function loadFromGist() {
     showLoading(true);
     try {
-        console.log('Attempting to load from:', NPOINT_URL);
-        
-        const response = await fetch(NPOINT_URL, {
-            method: 'GET',
+        const response = await fetch(`https://api.github.com/gists/${CONFIG.GIST_ID}`, {
             headers: {
-                'Accept': 'application/json'
+                'Authorization': `token ${CONFIG.GITHUB_TOKEN}`,
+                'Accept': 'application/vnd.github.v3+json'
             }
         });
-        
-        console.log('Response status:', response.status);
-        console.log('Response ok:', response.ok);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('Data received:', data);
-        
-        allData = (Object.keys(data).length === 0) ? {} : data;
-        console.log('Data loaded successfully');
-        showLoading(false);
-        return true;
-        
-    } catch (error) {
-        console.error('DETAILED ERROR:', error);
-        console.error('Error name:', error.name);
-        console.error('Error message:', error.message);
-        
-        showLoading(false);
-        
-        // More specific error messages
-        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-            alert('❌ NETWORK ERROR\n\nCannot connect to npoint.io\n\nPossible causes:\n1. Check your internet connection\n2. npoint.io might be down\n3. CORS issue\n\nTrying to continue with empty data...');
+
+        if (response.ok) {
+            const gist = await response.json();
+            const content = gist.files[CONFIG.FILENAME].content;
+            allData = JSON.parse(content);
+            console.log('✅ Data loaded from GitHub Gist');
+            showLoading(false);
+            return true;
         } else {
-            alert('❌ ERROR LOADING DATA\n\n' + error.message + '\n\nCheck browser console (F12) for details.\n\nTrying to continue with empty data...');
+            throw new Error(`HTTP ${response.status}`);
         }
-        
-        allData = {};
+    } catch (error) {
+        console.error('Load error:', error);
+        showLoading(false);
+        alert('❌ Could not load data from GitHub Gist.\n\nPlease check:\n1. Your GIST_ID is correct\n2. Your GITHUB_TOKEN is correct\n3. You have internet connection');
         return false;
     }
 }
 
-// ============================================
-// IMPROVED SAVE TO SERVER
-// ============================================
-async function saveToServer() {
+async function saveToGist() {
     showLoading(true);
     try {
-        console.log('Attempting to save to:', NPOINT_URL);
-        console.log('Data to save:', allData);
-        
-        const response = await fetch(NPOINT_URL, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
+        const response = await fetch(`https://api.github.com/gists/${CONFIG.GIST_ID}`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `token ${CONFIG.GITHUB_TOKEN}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify(allData)
+            body: JSON.stringify({
+                files: {
+                    [CONFIG.FILENAME]: {
+                        content: JSON.stringify(allData, null, 2)
+                    }
+                }
+            })
         });
-        
-        console.log('Save response status:', response.status);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+
+        if (response.ok) {
+            console.log('✅ Data saved to GitHub Gist');
+            showLoading(false);
+            showSuccess('✅ Attendance saved successfully!');
+            return true;
+        } else {
+            throw new Error(`HTTP ${response.status}`);
         }
-        
-        const result = await response.json();
-        console.log('Save successful:', result);
-        
-        showLoading(false);
-        showSuccess('Attendance saved successfully!');
-        return true;
-        
     } catch (error) {
-        console.error('SAVE ERROR:', error);
+        console.error('Save error:', error);
         showLoading(false);
-        alert('❌ FAILED TO SAVE\n\n' + error.message + '\n\nYour changes were NOT saved.\n\nCheck console (F12) for details.');
+        alert('❌ Failed to save to GitHub Gist.\n\nPlease check your token and try again.');
         return false;
     }
 }
 
+// ============================================
+// LOGIN
+// ============================================
 async function handleLogin(event) {
     event.preventDefault();
     
@@ -174,15 +159,11 @@ async function handleLogin(event) {
             document.getElementById('reportBtn').style.display = 'inline-block';
         }
         
-        const loaded = await loadFromServer();
-        drawCalendar();
-        
+        const loaded = await loadFromGist();
         if (loaded) {
+            drawCalendar();
             startAutoRefresh();
-        } else {
-            alert('⚠️ WARNING\n\nCould not load data from server.\n\nYou can still use the app, but data might not sync.\n\nPlease check your npoint URL and internet connection.');
         }
-        
     } else {
         document.getElementById('loginError').style.display = 'block';
         setTimeout(() => {
@@ -209,8 +190,7 @@ function startAutoRefresh() {
     stopAutoRefresh();
     refreshTimer = setInterval(async () => {
         if (!unsavedChanges) {
-            console.log('Auto-refreshing data...');
-            await loadFromServer();
+            await loadFromGist();
             drawCalendar();
         }
     }, 30000);
@@ -343,14 +323,14 @@ function updateStatus(userCode, dateKey, status) {
 async function submitAttendance() {
     if (!unsavedChanges) return;
     
-    const success = await saveToServer();
+    const success = await saveToGist();
     
     if (success) {
         unsavedChanges = false;
         document.getElementById('submitBtn').disabled = true;
         document.getElementById('pendingChanges').style.display = 'none';
         
-        await loadFromServer();
+        await loadFromGist();
         drawCalendar();
         updateStats();
     }
@@ -609,7 +589,7 @@ function showLoading(show) {
 
 function showSuccess(message) {
     const msg = document.getElementById('successMessage');
-    msg.textContent = '✓ ' + message;
+    msg.textContent = message;
     msg.style.display = 'block';
     setTimeout(() => msg.style.display = 'none', 3000);
 }
