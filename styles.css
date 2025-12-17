@@ -424,13 +424,17 @@ input[type="password"]:focus {
     cursor: not-allowed;
 }
 
-/* Lock Icon - appears WITH date */
+/* Lock Icon (Emoji) - appears WITH date */
 .lock-icon {
     position: absolute;
     top: 2px;
     right: 2px;
     font-size: 9px;
     opacity: 0.5;
+}
+
+.lock-icon::before {
+    content: "🔒";
 }
 
 /* Status Colors */
