@@ -2,7 +2,7 @@
 // STEP 1: SETUP YOUR NPOINT URL HERE
 // ============================================
 // Go to https://www.npoint.io/ ? Type {} ? Click Save ? Copy URL ? Paste below
-const NPOINT_URL = 'https://www.npoint.io/docs/6d959c9d44cfd9eb94b0';  // ? Replace with YOUR npoint URL
+const NPOINT_URL = 'https://api.npoint.io/9b394f97261bd28fcb7a';  // ? Replace with YOUR npoint URL
 
 // ============================================
 // USER CREDENTIALS
