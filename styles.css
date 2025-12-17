@@ -433,9 +433,7 @@ input[type="password"]:focus {
     opacity: 0.5;
 }
 
-.lock-icon::before {
-    content: "🔒";
-}
+
 
 /* Status Colors */
 #attendanceTable td.wfo {

@@ -39,7 +39,7 @@ async function loadAttendanceData() {
         if (response.ok) {
             const data = await response.json();
             attendanceData = data.record || {};
-            console.log('? Data loaded from server');
+            console.log('Data loaded from server');
         } else {
             console.log('No data found, starting fresh');
             attendanceData = {};
@@ -64,7 +64,7 @@ async function saveAttendanceData() {
         });
         
         if (response.ok) {
-            console.log('? Data saved to server automatically');
+            console.log('Data saved to server automatically');
             return true;
         } else {
             const errorData = await response.json();
@@ -175,7 +175,7 @@ function renderCalendar() {
                     cell.classList.add('locked');
                     const lockSpan = document.createElement('span');
                     lockSpan.className = 'lock-icon';
-                    lockSpan.textContent = '?';
+                    lockSpan.textContent = '🔒';
                     cellContent.appendChild(lockSpan);
                 }
                 
@@ -287,7 +287,7 @@ function renderCellContent(cell, userCode, dateKey, day, month) {
     if (!canEdit) {
         const lockSpan = document.createElement('span');
         lockSpan.className = 'lock-icon';
-        lockSpan.textContent = '?';
+        lockSpan.textContent = '🔒';
         cellContent.appendChild(lockSpan);
     }
     
@@ -313,7 +313,7 @@ async function submitAttendance() {
         document.getElementById('pendingChanges').style.display = 'none';
         
         const successMsg = document.getElementById('successMessage');
-        successMsg.textContent = '? Data saved to server! Everyone can now see your changes.';
+        successMsg.textContent = 'Data saved to server! Everyone can now see your changes.';
         successMsg.style.display = 'block';
         setTimeout(() => {
             successMsg.style.display = 'none';
