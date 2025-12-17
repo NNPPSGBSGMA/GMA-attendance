@@ -3,7 +3,7 @@
 // ============================================
 const CONFIG = {
     GIST_ID: 'c3bbde6b0b415d146a1485af8d44b672',  // ← Paste your Gist ID here
-    GITHUB_TOKEN: 'https://gist.github.com/NNPPSGBSGMA/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',  // ← Paste your token here
+    GITHUB_TOKEN: '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',  // ← Paste your token here
     FILENAME: 'attendance-data.json'
 };
 
