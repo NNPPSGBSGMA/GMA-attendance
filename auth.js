@@ -36,7 +36,8 @@ const USERS = {
     'MGVM': { password: 'Mgvm@2026!Aff', isAdmin: false, name: 'MGVM' },
     'JVMC': { password: 'Jvmc$2026#Blr', isAdmin: false, name: 'JVMC' },
     'SIZR': { password: 'Sizr#2026$Ind', isAdmin: false, name: 'SIZR' },
-    'IUHK': { password: 'Iuhk!2026%Att', isAdmin: false, name: 'IUHK' }
+    'IUHK': { password: 'Iuhk!2026%Att', isAdmin: false, name: 'IUHK' },
+    'DEMO': { password: 'Demo!2026%new', isAdmin: false, name: 'DEMO' }
 };
 
 let currentLoggedInUser = null;
