@@ -130,7 +130,8 @@ function renderCalendar() {
     
     table.appendChild(headerRow);
     
-    Object.keys(USERS).forEach(userCode => {
+    // Use getUserCodes() instead of Object.keys(USERS)
+    getUserCodes().forEach(userCode => {
         const row = document.createElement('tr');
         row.dataset.user = userCode;
         
@@ -175,7 +176,7 @@ function renderCalendar() {
                     cell.classList.add('locked');
                     const lockSpan = document.createElement('span');
                     lockSpan.className = 'lock-icon';
-                    lockSpan.textContent = '🔒';
+                    lockSpan.textContent = '?';
                     cellContent.appendChild(lockSpan);
                 }
                 
@@ -287,7 +288,7 @@ function renderCellContent(cell, userCode, dateKey, day, month) {
     if (!canEdit) {
         const lockSpan = document.createElement('span');
         lockSpan.className = 'lock-icon';
-        lockSpan.textContent = '🔒';
+        lockSpan.textContent = '?';
         cellContent.appendChild(lockSpan);
     }
     
@@ -436,7 +437,8 @@ function generateReport() {
     reportHTML += '<div class="report-table-wrapper"><table class="report-table">';
     reportHTML += '<thead><tr><th>User</th><th>WFO</th><th>Planned</th><th>Offsite</th><th>Travel</th><th>Leave</th><th>Total Days</th></tr></thead><tbody>';
     
-    Object.keys(USERS).forEach(userCode => {
+    // Use getUserCodes() instead of Object.keys(USERS)
+    getUserCodes().forEach(userCode => {
         let stats = { wfo: 0, planned: 0, offsite: 0, travel: 0, leave: 0, total: 0 };
         
         for (let day = 1; day <= daysInMonth; day++) {
@@ -479,7 +481,8 @@ function exportToCSV() {
     }
     csv += '\n';
     
-    Object.keys(USERS).forEach(userCode => {
+    // Use getUserCodes() instead of Object.keys(USERS)
+    getUserCodes().forEach(userCode => {
         csv += userCode + ',';
         for (let day = 1; day <= daysInMonth; day++) {
             const dateKey = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
@@ -513,7 +516,8 @@ function exportReportToCSV() {
     
     let csv = 'Comprehensive Attendance Report - ' + monthName + ' 2026\n\nUser,WFO,Planned,Offsite,Travel,Leave,Total Working Days\n';
     
-    Object.keys(USERS).forEach(userCode => {
+    // Use getUserCodes() instead of Object.keys(USERS)
+    getUserCodes().forEach(userCode => {
         let stats = { wfo: 0, planned: 0, offsite: 0, travel: 0, leave: 0, total: 0 };
         
         for (let day = 1; day <= daysInMonth; day++) {
