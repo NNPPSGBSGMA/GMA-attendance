@@ -42,14 +42,14 @@ async function loadUserDatabase() {
         if (response.ok) {
             const data = await response.json();
             USERS_CACHE = data.record.users || {};
-            console.log('✅ User database loaded:', Object.keys(USERS_CACHE).length, 'users');
+            console.log('âœ… User database loaded:', Object.keys(USERS_CACHE).length, 'users');
             return true;
         } else {
-            console.error('❌ Failed to load user database');
+            console.error('âŒ Failed to load user database');
             return false;
         }
     } catch (error) {
-        console.error('❌ Error loading user database:', error);
+        console.error('âŒ Error loading user database:', error);
         return false;
     }
 }
@@ -76,7 +76,7 @@ async function handleLogin() {
         return;
     }
     
-    console.log('🔍 Checking credentials for:', code);
+    console.log('ðŸ” Checking credentials for:', code);
     
     if (USERS_CACHE[code] && USERS_CACHE[code].password === password) {
         currentLoggedInUser = {
@@ -85,7 +85,7 @@ async function handleLogin() {
             name: USERS_CACHE[code].name
         };
         
-        console.log('✅ Login successful for:', code);
+        console.log('âœ… Login successful for:', code);
         
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
@@ -98,7 +98,7 @@ async function handleLogin() {
             document.getElementById('reportBtn').style.display = 'inline-block';
         }
         
-        console.log('📅 Initializing calendar...');
+        console.log('ðŸ“… Initializing calendar...');
         initializeCalendar();
         
     } else {
@@ -139,8 +139,8 @@ function getUserCodes() {
 // ==================== CALENDAR FUNCTIONS ====================
 
 function initializeCalendar() {
-    console.log('🚀 initializeCalendar called');
-    console.log('📊 Available users:', getUserCodes().length);
+    console.log('ðŸš€ initializeCalendar called');
+    console.log('ðŸ“Š Available users:', getUserCodes().length);
     loadAttendanceData();
 }
 
@@ -155,13 +155,13 @@ async function loadAttendanceData() {
         if (response.ok) {
             const data = await response.json();
             attendanceData = data.record || {};
-            console.log('✅ Attendance data loaded');
+            console.log('âœ… Attendance data loaded');
         } else {
-            console.log('⚠️ No attendance data found, starting fresh');
+            console.log('âš ï¸ No attendance data found, starting fresh');
             attendanceData = {};
         }
     } catch (error) {
-        console.error('❌ Error loading attendance data:', error);
+        console.error('âŒ Error loading attendance data:', error);
         attendanceData = {};
     }
     
@@ -180,16 +180,16 @@ async function saveAttendanceData() {
         });
         
         if (response.ok) {
-            console.log('✅ Data saved to server');
+            console.log('âœ… Data saved to server');
             return true;
         } else {
             const errorData = await response.json();
-            console.error('❌ Failed to save:', errorData);
+            console.error('âŒ Failed to save:', errorData);
             alert('Failed to save data: ' + (errorData.message || 'Unknown error'));
             return false;
         }
     } catch (error) {
-        console.error('❌ Error saving data:', error);
+        console.error('âŒ Error saving data:', error);
         alert('Error saving data. Check console for details.');
         return false;
     }
@@ -215,13 +215,13 @@ function formatDate(day, month) {
 }
 
 function renderCalendar() {
-    console.log('🎨 Rendering calendar...');
+    console.log('ðŸŽ¨ Rendering calendar...');
     
     const userCodes = getUserCodes();
-    console.log('👥 Rendering for users:', userCodes);
+    console.log('ðŸ‘¥ Rendering for users:', userCodes);
     
     if (!userCodes || userCodes.length === 0) {
-        console.error('❌ No users available to render calendar');
+        console.error('âŒ No users available to render calendar');
         const table = document.getElementById('attendanceTable');
         table.innerHTML = '<tr><td style="padding: 20px; text-align: center; color: red;">Error: No user data available. Please logout and login again.</td></tr>';
         return;
@@ -326,7 +326,7 @@ function renderCalendar() {
     });
     
     document.getElementById('monthSelector').value = currentMonth;
-    console.log('✅ Calendar rendered successfully with', userCodes.length, 'users');
+    console.log('âœ… Calendar rendered successfully with', userCodes.length, 'users');
 }
 
 function handleCellClick(cell, userCode, dateKey, day, month) {
@@ -387,38 +387,41 @@ function handleCellClick(cell, userCode, dateKey, day, month) {
         popup.appendChild(clearItem);
     }
     
-    // Append popup to the cell's parent container (table)
-    const table = document.getElementById('attendanceTable');
-    table.parentElement.style.position = 'relative';
-    table.parentElement.appendChild(popup);
-    
-    // Position popup relative to the cell
-    const cellRect = cell.getBoundingClientRect();
-    const containerRect = table.parentElement.getBoundingClientRect();
-    
-    const left = cellRect.left - containerRect.left;
-    const top = cellRect.bottom - containerRect.top + 5;
-    
-    popup.style.position = 'absolute';
-    popup.style.left = left + 'px';
-    popup.style.top = top + 'px';
+    // Append popup to body first to calculate dimensions
+    document.body.appendChild(popup);
     popup.style.display = 'block';
+    popup.style.position = 'fixed'; // Use fixed positioning
+    
+    // Get cell position
+    const cellRect = cell.getBoundingClientRect();
+    const popupRect = popup.getBoundingClientRect();
+    
+    // Calculate position
+    let left = cellRect.left;
+    let top = cellRect.bottom + 5;
     
     // Check if popup goes off-screen to the right
-    const popupRect = popup.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    
-    if (popupRect.right > viewportWidth) {
-        // Position it to the left of the cell instead
-        popup.style.left = (left - popup.offsetWidth + cell.offsetWidth) + 'px';
+    if (left + popupRect.width > window.innerWidth) {
+        left = cellRect.right - popupRect.width;
     }
     
     // Check if popup goes off-screen at the bottom
-    const viewportHeight = window.innerHeight;
-    if (popupRect.bottom > viewportHeight) {
-        // Position it above the cell instead
-        popup.style.top = (cellRect.top - containerRect.top - popup.offsetHeight - 5) + 'px';
+    if (top + popupRect.height > window.innerHeight) {
+        top = cellRect.top - popupRect.height - 5;
     }
+    
+    // Ensure popup doesn't go off-screen left
+    if (left < 0) {
+        left = 5;
+    }
+    
+    // Ensure popup doesn't go off-screen top
+    if (top < 0) {
+        top = cellRect.bottom + 5;
+    }
+    
+    popup.style.left = left + 'px';
+    popup.style.top = top + 'px';
     
     activePopup = popup;
     
