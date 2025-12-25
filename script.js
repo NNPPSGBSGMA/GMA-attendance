@@ -41,14 +41,14 @@ async function loadUserDatabase() {
         if (response.ok) {
             const data = await response.json();
             USERS_CACHE = data.record.users || {};
-            console.log('? User database loaded:', Object.keys(USERS_CACHE).length, 'users');
+            console.log('User database loaded:', Object.keys(USERS_CACHE).length, 'users');
             return true;
         } else {
-            console.error('? Failed to load user database');
+            console.error('Failed to load user database');
             return false;
         }
     } catch (error) {
-        console.error('? Error loading user database:', error);
+        console.error('Error loading user database:', error);
         return false;
     }
 }
@@ -75,7 +75,7 @@ async function handleLogin() {
         return;
     }
     
-    console.log('? Checking credentials for:', code);
+    console.log('Checking credentials for:', code);
     
     if (USERS_CACHE[code] && USERS_CACHE[code].password === password) {
         currentLoggedInUser = {
@@ -84,7 +84,7 @@ async function handleLogin() {
             name: USERS_CACHE[code].name
         };
         
-        console.log('? Login successful for:', code);
+        console.log('Login successful for:', code);
         
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
@@ -97,7 +97,7 @@ async function handleLogin() {
             document.getElementById('reportBtn').style.display = 'inline-block';
         }
         
-        console.log('? Initializing calendar...');
+        console.log('Initializing calendar...');
         initializeCalendar();
         
     } else {
@@ -138,8 +138,8 @@ function getUserCodes() {
 // ==================== CALENDAR FUNCTIONS ====================
 
 function initializeCalendar() {
-    console.log('? initializeCalendar called');
-    console.log('? Available users:', getUserCodes().length);
+    console.log('initializeCalendar called');
+    console.log('Available users:', getUserCodes().length);
     loadAttendanceData();
 }
 
@@ -154,13 +154,13 @@ async function loadAttendanceData() {
         if (response.ok) {
             const data = await response.json();
             attendanceData = data.record || {};
-            console.log('? Attendance data loaded');
+            console.log('Attendance data loaded');
         } else {
-            console.log('?? No attendance data found, starting fresh');
+            console.log('No attendance data found, starting fresh');
             attendanceData = {};
         }
     } catch (error) {
-        console.error('? Error loading attendance data:', error);
+        console.error('Error loading attendance data:', error);
         attendanceData = {};
     }
     
@@ -179,7 +179,7 @@ async function saveAttendanceData() {
         });
         
         if (response.ok) {
-            console.log('? Data saved to server');
+            console.log('Data saved to server');
             return true;
         } else {
             const errorData = await response.json();
@@ -301,12 +301,12 @@ function renderCalendar() {
                 const cellContent = document.createDocumentFragment();
                 
                 if (!canEdit) {
-                    cell.classList.add('locked');
-                    const lockSpan = document.createElement('span');
-                    lockSpan.className = 'lock-icon';
-                    lockSpan.textContent = '?';
-                    cellContent.appendChild(lockSpan);
-                }
+					cell.classList.add('locked');
+					const lockSpan = document.createElement('span');
+					lockSpan.className = 'lock-icon';
+					lockSpan.innerHTML = '&#128274;'; // Change this line
+					cellContent.appendChild(lockSpan);
+				}
                 
                 const dateText = document.createTextNode(formatDate(day, month));
                 cellContent.appendChild(dateText);
@@ -414,12 +414,12 @@ function renderCellContent(cell, userCode, dateKey, day, month) {
     
     const cellContent = document.createDocumentFragment();
     
-    if (!canEdit) {
-        const lockSpan = document.createElement('span');
-        lockSpan.className = 'lock-icon';
-        lockSpan.textContent = '?';
-        cellContent.appendChild(lockSpan);
-    }
+   if (!canEdit) {
+    const lockSpan = document.createElement('span');
+    lockSpan.className = 'lock-icon';
+    lockSpan.innerHTML = '&#128274;'; // Change this line
+    cellContent.appendChild(lockSpan);
+}
     
     const dateText = document.createTextNode(formatDate(day, month));
     cellContent.appendChild(dateText);
