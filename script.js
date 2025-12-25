@@ -11,6 +11,7 @@ let currentMonth = 0;
 let attendanceData = {};
 let pendingChanges = {};
 let hasUnsavedChanges = false;
+let activePopup = null;
 
 const HOLIDAYS_2026 = [
     '2026-01-15', '2026-01-26', '2026-03-19', '2026-05-01',
@@ -41,14 +42,14 @@ async function loadUserDatabase() {
         if (response.ok) {
             const data = await response.json();
             USERS_CACHE = data.record.users || {};
-            console.log('User database loaded:', Object.keys(USERS_CACHE).length, 'users');
+            console.log('✅ User database loaded:', Object.keys(USERS_CACHE).length, 'users');
             return true;
         } else {
-            console.error('Failed to load user database');
+            console.error('❌ Failed to load user database');
             return false;
         }
     } catch (error) {
-        console.error('Error loading user database:', error);
+        console.error('❌ Error loading user database:', error);
         return false;
     }
 }
@@ -75,7 +76,7 @@ async function handleLogin() {
         return;
     }
     
-    console.log('Checking credentials for:', code);
+    console.log('🔍 Checking credentials for:', code);
     
     if (USERS_CACHE[code] && USERS_CACHE[code].password === password) {
         currentLoggedInUser = {
@@ -84,7 +85,7 @@ async function handleLogin() {
             name: USERS_CACHE[code].name
         };
         
-        console.log('Login successful for:', code);
+        console.log('✅ Login successful for:', code);
         
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
@@ -97,7 +98,7 @@ async function handleLogin() {
             document.getElementById('reportBtn').style.display = 'inline-block';
         }
         
-        console.log('Initializing calendar...');
+        console.log('📅 Initializing calendar...');
         initializeCalendar();
         
     } else {
@@ -138,8 +139,8 @@ function getUserCodes() {
 // ==================== CALENDAR FUNCTIONS ====================
 
 function initializeCalendar() {
-    console.log('initializeCalendar called');
-    console.log('Available users:', getUserCodes().length);
+    console.log('🚀 initializeCalendar called');
+    console.log('📊 Available users:', getUserCodes().length);
     loadAttendanceData();
 }
 
@@ -154,13 +155,13 @@ async function loadAttendanceData() {
         if (response.ok) {
             const data = await response.json();
             attendanceData = data.record || {};
-            console.log('Attendance data loaded');
+            console.log('✅ Attendance data loaded');
         } else {
-            console.log('No attendance data found, starting fresh');
+            console.log('⚠️ No attendance data found, starting fresh');
             attendanceData = {};
         }
     } catch (error) {
-        console.error('Error loading attendance data:', error);
+        console.error('❌ Error loading attendance data:', error);
         attendanceData = {};
     }
     
@@ -179,16 +180,16 @@ async function saveAttendanceData() {
         });
         
         if (response.ok) {
-            console.log('Data saved to server');
+            console.log('✅ Data saved to server');
             return true;
         } else {
             const errorData = await response.json();
-            console.error('? Failed to save:', errorData);
+            console.error('❌ Failed to save:', errorData);
             alert('Failed to save data: ' + (errorData.message || 'Unknown error'));
             return false;
         }
     } catch (error) {
-        console.error('? Error saving data:', error);
+        console.error('❌ Error saving data:', error);
         alert('Error saving data. Check console for details.');
         return false;
     }
@@ -214,13 +215,13 @@ function formatDate(day, month) {
 }
 
 function renderCalendar() {
-    console.log('? Rendering calendar...');
+    console.log('🎨 Rendering calendar...');
     
     const userCodes = getUserCodes();
-    console.log('? Rendering for users:', userCodes);
+    console.log('👥 Rendering for users:', userCodes);
     
     if (!userCodes || userCodes.length === 0) {
-        console.error('? No users available to render calendar');
+        console.error('❌ No users available to render calendar');
         const table = document.getElementById('attendanceTable');
         table.innerHTML = '<tr><td style="padding: 20px; text-align: center; color: red;">Error: No user data available. Please logout and login again.</td></tr>';
         return;
@@ -301,12 +302,12 @@ function renderCalendar() {
                 const cellContent = document.createDocumentFragment();
                 
                 if (!canEdit) {
-					cell.classList.add('locked');
-					const lockSpan = document.createElement('span');
-					lockSpan.className = 'lock-icon';
-					lockSpan.innerHTML = '&#128274;'; // Change this line
-					cellContent.appendChild(lockSpan);
-				}
+                    cell.classList.add('locked');
+                    const lockSpan = document.createElement('span');
+                    lockSpan.className = 'lock-icon';
+                    lockSpan.innerHTML = '&#128274;';
+                    cellContent.appendChild(lockSpan);
+                }
                 
                 const dateText = document.createTextNode(formatDate(day, month));
                 cellContent.appendChild(dateText);
@@ -325,7 +326,7 @@ function renderCalendar() {
     });
     
     document.getElementById('monthSelector').value = currentMonth;
-    console.log('? Calendar rendered successfully with', userCodes.length, 'users');
+    console.log('✅ Calendar rendered successfully with', userCodes.length, 'users');
 }
 
 function handleCellClick(cell, userCode, dateKey, day, month) {
@@ -333,49 +334,104 @@ function handleCellClick(cell, userCode, dateKey, day, month) {
         return;
     }
     
-    const existingSelect = cell.querySelector('select');
-    if (existingSelect) {
-        return;
+    // Remove any existing popup
+    if (activePopup) {
+        activePopup.remove();
+        activePopup = null;
     }
     
-    const select = document.createElement('select');
-    select.className = 'status-select';
+    // Create popup menu
+    const popup = document.createElement('div');
+    popup.className = 'status-popup';
     
-    const defaultOption = document.createElement('option');
-    defaultOption.value = '';
-    defaultOption.textContent = '-- Select --';
-    select.appendChild(defaultOption);
-    
+    // Add status options
     STATUS_OPTIONS.forEach(status => {
-        const option = document.createElement('option');
-        option.value = status.value;
-        option.textContent = status.label;
-        select.appendChild(option);
+        const item = document.createElement('div');
+        item.className = `status-popup-item ${status.value}-option`;
+        
+        const colorIndicator = document.createElement('div');
+        colorIndicator.className = 'status-color-indicator';
+        colorIndicator.style.background = status.color;
+        
+        const label = document.createElement('span');
+        label.textContent = status.label;
+        
+        item.appendChild(colorIndicator);
+        item.appendChild(label);
+        
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            updateCellStatus(cell, userCode, dateKey, status.value, day, month);
+            renderCellContent(cell, userCode, dateKey, day, month);
+            popup.remove();
+            activePopup = null;
+        });
+        
+        popup.appendChild(item);
     });
     
+    // Add "Clear" option if cell has status
     if (attendanceData[userCode] && attendanceData[userCode][dateKey]) {
-        select.value = attendanceData[userCode][dateKey];
+        const clearItem = document.createElement('div');
+        clearItem.className = 'status-popup-item clear-option';
+        clearItem.innerHTML = '<span style="font-size: 16px;">✖</span><span>Clear Status</span>';
+        
+        clearItem.addEventListener('click', (e) => {
+            e.stopPropagation();
+            updateCellStatus(cell, userCode, dateKey, '', day, month);
+            renderCellContent(cell, userCode, dateKey, day, month);
+            popup.remove();
+            activePopup = null;
+        });
+        
+        popup.appendChild(clearItem);
     }
     
-    select.addEventListener('change', (e) => {
-        const newStatus = e.target.value;
-        updateCellStatus(cell, userCode, dateKey, newStatus, day, month);
-        select.remove();
-        renderCellContent(cell, userCode, dateKey, day, month);
-    });
+    // Append popup to the cell's parent container (table)
+    const table = document.getElementById('attendanceTable');
+    table.parentElement.style.position = 'relative';
+    table.parentElement.appendChild(popup);
     
-    select.addEventListener('blur', () => {
-        setTimeout(() => {
-            if (document.activeElement !== select) {
-                select.remove();
-                renderCellContent(cell, userCode, dateKey, day, month);
+    // Position popup relative to the cell
+    const cellRect = cell.getBoundingClientRect();
+    const containerRect = table.parentElement.getBoundingClientRect();
+    
+    const left = cellRect.left - containerRect.left;
+    const top = cellRect.bottom - containerRect.top + 5;
+    
+    popup.style.position = 'absolute';
+    popup.style.left = left + 'px';
+    popup.style.top = top + 'px';
+    popup.style.display = 'block';
+    
+    // Check if popup goes off-screen to the right
+    const popupRect = popup.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    
+    if (popupRect.right > viewportWidth) {
+        // Position it to the left of the cell instead
+        popup.style.left = (left - popup.offsetWidth + cell.offsetWidth) + 'px';
+    }
+    
+    // Check if popup goes off-screen at the bottom
+    const viewportHeight = window.innerHeight;
+    if (popupRect.bottom > viewportHeight) {
+        // Position it above the cell instead
+        popup.style.top = (cellRect.top - containerRect.top - popup.offsetHeight - 5) + 'px';
+    }
+    
+    activePopup = popup;
+    
+    // Close popup when clicking outside
+    setTimeout(() => {
+        document.addEventListener('click', function closePopup(e) {
+            if (popup && !popup.contains(e.target) && e.target !== cell) {
+                popup.remove();
+                activePopup = null;
+                document.removeEventListener('click', closePopup);
             }
-        }, 200);
-    });
-    
-    cell.innerHTML = '';
-    cell.appendChild(select);
-    select.focus();
+        });
+    }, 100);
 }
 
 function updateCellStatus(cell, userCode, dateKey, status, day, month) {
@@ -414,12 +470,12 @@ function renderCellContent(cell, userCode, dateKey, day, month) {
     
     const cellContent = document.createDocumentFragment();
     
-   if (!canEdit) {
-    const lockSpan = document.createElement('span');
-    lockSpan.className = 'lock-icon';
-    lockSpan.innerHTML = '&#128274;'; // Change this line
-    cellContent.appendChild(lockSpan);
-}
+    if (!canEdit) {
+        const lockSpan = document.createElement('span');
+        lockSpan.className = 'lock-icon';
+        lockSpan.innerHTML = '&#128274;';
+        cellContent.appendChild(lockSpan);
+    }
     
     const dateText = document.createTextNode(formatDate(day, month));
     cellContent.appendChild(dateText);
