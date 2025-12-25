@@ -1,8 +1,12 @@
 // ========== YOUR CREDENTIALS ==========
-const JSONBIN_BIN_ID = "6942d4d443b1c97be9f4cf62";
+const JSONBIN_AUTH_BIN_ID = "694b9e8dd0ea881f403d5158";
+const JSONBIN_ATTENDANCE_BIN_ID = "6942d4d443b1c97be9f4cf62";
 const JSONBIN_API_KEY = "$2a$10$TSxWjP8KeL2sCsGcfRtI.uxlpOLk2c2yTg3Qn8loL1z5d8OHN87fO";
 // ======================================
 
+// Global variables
+let currentLoggedInUser = null;
+let USERS_CACHE = {};
 let currentMonth = 0;
 let attendanceData = {};
 let pendingChanges = {};
@@ -24,13 +28,124 @@ const STATUS_OPTIONS = [
     { value: 'leave', label: 'Leave', color: '#FFB6C1' }
 ];
 
+// ==================== AUTHENTICATION ====================
+
+async function loadUserDatabase() {
+    try {
+        const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_AUTH_BIN_ID}/latest`, {
+            headers: {
+                'X-Master-Key': JSONBIN_API_KEY
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            USERS_CACHE = data.record.users || {};
+            console.log('? User database loaded:', Object.keys(USERS_CACHE).length, 'users');
+            return true;
+        } else {
+            console.error('? Failed to load user database');
+            return false;
+        }
+    } catch (error) {
+        console.error('? Error loading user database:', error);
+        return false;
+    }
+}
+
+async function handleLogin() {
+    const code = document.getElementById('loginCode').value.toUpperCase().trim();
+    const password = document.getElementById('loginPassword').value;
+    const errorDiv = document.getElementById('loginError');
+    const submitBtn = document.querySelector('.login-submit-btn');
+    
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Authenticating...';
+    
+    const loaded = await loadUserDatabase();
+    
+    if (!loaded) {
+        errorDiv.textContent = 'Server connection error. Please try again.';
+        errorDiv.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Login to Tracker';
+        setTimeout(() => {
+            errorDiv.style.display = 'none';
+        }, 3000);
+        return;
+    }
+    
+    console.log('? Checking credentials for:', code);
+    
+    if (USERS_CACHE[code] && USERS_CACHE[code].password === password) {
+        currentLoggedInUser = {
+            code: code,
+            isAdmin: USERS_CACHE[code].isAdmin,
+            name: USERS_CACHE[code].name
+        };
+        
+        console.log('? Login successful for:', code);
+        
+        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'block';
+        
+        document.getElementById('displayUserCode').textContent = `User: ${code}`;
+        document.getElementById('securityUserCode').textContent = code;
+        
+        if (currentLoggedInUser.isAdmin) {
+            document.getElementById('adminNotice').style.display = 'block';
+            document.getElementById('reportBtn').style.display = 'inline-block';
+        }
+        
+        console.log('? Initializing calendar...');
+        initializeCalendar();
+        
+    } else {
+        errorDiv.textContent = 'Invalid code or password. Please try again.';
+        errorDiv.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Login to Tracker';
+        setTimeout(() => {
+            errorDiv.style.display = 'none';
+        }, 3000);
+    }
+}
+
+function handleLogout() {
+    if (confirm('Are you sure you want to logout? Any unsaved changes will be lost.')) {
+        currentLoggedInUser = null;
+        USERS_CACHE = {};
+        document.getElementById('mainApp').style.display = 'none';
+        document.getElementById('loginOverlay').style.display = 'flex';
+        document.getElementById('loginCode').value = '';
+        document.getElementById('loginPassword').value = '';
+        document.getElementById('adminNotice').style.display = 'none';
+        document.getElementById('reportBtn').style.display = 'none';
+        document.getElementById('statsContainer').style.display = 'none';
+    }
+}
+
+function canEditRow(userCode) {
+    if (!currentLoggedInUser) return false;
+    if (currentLoggedInUser.isAdmin) return true;
+    return currentLoggedInUser.code === userCode;
+}
+
+function getUserCodes() {
+    return Object.keys(USERS_CACHE);
+}
+
+// ==================== CALENDAR FUNCTIONS ====================
+
 function initializeCalendar() {
+    console.log('? initializeCalendar called');
+    console.log('? Available users:', getUserCodes().length);
     loadAttendanceData();
 }
 
 async function loadAttendanceData() {
     try {
-        const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+        const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_ATTENDANCE_BIN_ID}/latest`, {
             headers: {
                 'X-Master-Key': JSONBIN_API_KEY
             }
@@ -39,13 +154,13 @@ async function loadAttendanceData() {
         if (response.ok) {
             const data = await response.json();
             attendanceData = data.record || {};
-            console.log('Data loaded from server');
+            console.log('? Attendance data loaded');
         } else {
-            console.log('No data found, starting fresh');
+            console.log('?? No attendance data found, starting fresh');
             attendanceData = {};
         }
     } catch (error) {
-        console.error('Error loading data:', error);
+        console.error('? Error loading attendance data:', error);
         attendanceData = {};
     }
     
@@ -54,7 +169,7 @@ async function loadAttendanceData() {
 
 async function saveAttendanceData() {
     try {
-        const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+        const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_ATTENDANCE_BIN_ID}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -64,16 +179,16 @@ async function saveAttendanceData() {
         });
         
         if (response.ok) {
-            console.log('Data saved to server automatically');
+            console.log('? Data saved to server');
             return true;
         } else {
             const errorData = await response.json();
-            console.error('Failed to save:', errorData);
+            console.error('? Failed to save:', errorData);
             alert('Failed to save data: ' + (errorData.message || 'Unknown error'));
             return false;
         }
     } catch (error) {
-        console.error('Error saving data:', error);
+        console.error('? Error saving data:', error);
         alert('Error saving data. Check console for details.');
         return false;
     }
@@ -99,6 +214,18 @@ function formatDate(day, month) {
 }
 
 function renderCalendar() {
+    console.log('? Rendering calendar...');
+    
+    const userCodes = getUserCodes();
+    console.log('? Rendering for users:', userCodes);
+    
+    if (!userCodes || userCodes.length === 0) {
+        console.error('? No users available to render calendar');
+        const table = document.getElementById('attendanceTable');
+        table.innerHTML = '<tr><td style="padding: 20px; text-align: center; color: red;">Error: No user data available. Please logout and login again.</td></tr>';
+        return;
+    }
+    
     const table = document.getElementById('attendanceTable');
     const year = 2026;
     const month = currentMonth;
@@ -106,6 +233,7 @@ function renderCalendar() {
     
     table.innerHTML = '';
     
+    // Create header row
     const headerRow = document.createElement('tr');
     const nameHeader = document.createElement('th');
     nameHeader.className = 'name-header';
@@ -130,7 +258,8 @@ function renderCalendar() {
     
     table.appendChild(headerRow);
     
-    Object.keys(USERS).forEach(userCode => {
+    // Render user rows
+    userCodes.forEach(userCode => {
         const row = document.createElement('tr');
         row.dataset.user = userCode;
         
@@ -175,7 +304,7 @@ function renderCalendar() {
                     cell.classList.add('locked');
                     const lockSpan = document.createElement('span');
                     lockSpan.className = 'lock-icon';
-                    lockSpan.textContent = '🔒';
+                    lockSpan.textContent = '?';
                     cellContent.appendChild(lockSpan);
                 }
                 
@@ -196,6 +325,7 @@ function renderCalendar() {
     });
     
     document.getElementById('monthSelector').value = currentMonth;
+    console.log('? Calendar rendered successfully with', userCodes.length, 'users');
 }
 
 function handleCellClick(cell, userCode, dateKey, day, month) {
@@ -287,7 +417,7 @@ function renderCellContent(cell, userCode, dateKey, day, month) {
     if (!canEdit) {
         const lockSpan = document.createElement('span');
         lockSpan.className = 'lock-icon';
-        lockSpan.textContent = '🔒';
+        lockSpan.textContent = '?';
         cellContent.appendChild(lockSpan);
     }
     
@@ -436,7 +566,7 @@ function generateReport() {
     reportHTML += '<div class="report-table-wrapper"><table class="report-table">';
     reportHTML += '<thead><tr><th>User</th><th>WFO</th><th>Planned</th><th>Offsite</th><th>Travel</th><th>Leave</th><th>Total Days</th></tr></thead><tbody>';
     
-    Object.keys(USERS).forEach(userCode => {
+    getUserCodes().forEach(userCode => {
         let stats = { wfo: 0, planned: 0, offsite: 0, travel: 0, leave: 0, total: 0 };
         
         for (let day = 1; day <= daysInMonth; day++) {
@@ -479,7 +609,7 @@ function exportToCSV() {
     }
     csv += '\n';
     
-    Object.keys(USERS).forEach(userCode => {
+    getUserCodes().forEach(userCode => {
         csv += userCode + ',';
         for (let day = 1; day <= daysInMonth; day++) {
             const dateKey = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
@@ -513,7 +643,7 @@ function exportReportToCSV() {
     
     let csv = 'Comprehensive Attendance Report - ' + monthName + ' 2026\n\nUser,WFO,Planned,Offsite,Travel,Leave,Total Working Days\n';
     
-    Object.keys(USERS).forEach(userCode => {
+    getUserCodes().forEach(userCode => {
         let stats = { wfo: 0, planned: 0, offsite: 0, travel: 0, leave: 0, total: 0 };
         
         for (let day = 1; day <= daysInMonth; day++) {
