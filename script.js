@@ -370,9 +370,9 @@ function renderCalendar() {
                 if (savedStatus) {
                     cell.classList.add(savedStatus);
                     if (savedStatus === 'oh1') {
-                        cell.textContent = 'Optional Holiday 1';
+                        cell.textContent = 'OH 1';
                     } else if (savedStatus === 'oh2') {
-                        cell.textContent = 'Optional Holiday 2';
+                        cell.textContent = 'OH 2';
                     } else {
                         cell.textContent = formatDate(day, month);
                     }
