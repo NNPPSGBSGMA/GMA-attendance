@@ -200,7 +200,8 @@ input[type="password"]:focus {
 .security-notice,
 .admin-notice,
 .security-violation,
-.success-message {
+.success-message,
+.office-policy-notice {
     padding: 16px 20px;
     border-radius: 16px;
     margin-bottom: 20px;
@@ -236,6 +237,13 @@ input[type="password"]:focus {
     color: #2e7d32;
     border: 2px solid #a5d6a7;
     display: none;
+}
+
+.office-policy-notice {
+    background: #e3f2fd;
+    color: #001965;
+    border: 2px solid #bbdefb;
+    font-weight: 600;
 }
 
 /* Action Bar */
@@ -385,6 +393,10 @@ input[type="password"]:focus {
     background: #78909c;
 }
 
+#attendanceTable th.optional-holiday-header {
+    background: #9575cd;
+}
+
 #attendanceTable td {
     border: 1px solid #e0e0e0;
     padding: 8px 4px;
@@ -403,6 +415,7 @@ input[type="password"]:focus {
     padding: 8px 15px;
     z-index: 5;
     min-width: 150px;
+    height: 45px;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -443,12 +456,12 @@ input[type="password"]:focus {
     content: '';
 }
 
-#attendanceTable tr.current-user-row td.date-cell:not(.weekend):not(.holiday) {
+#attendanceTable tr.current-user-row td.date-cell:not(.weekend):not(.holiday):not(.optional-holiday) {
     background: #f0f7ff;
     border: 2px solid #90caf9;
 }
 
-#attendanceTable tr.current-user-row td.date-cell:not(.weekend):not(.holiday):hover:not(.locked) {
+#attendanceTable tr.current-user-row td.date-cell:not(.weekend):not(.holiday):not(.optional-holiday):hover:not(.locked) {
     background: #e3f2fd !important;
     box-shadow: 0 0 10px rgba(0, 25, 101, 0.3);
 }
@@ -479,17 +492,37 @@ input[type="password"]:focus {
     border: 2px solid #e91e63;
 }
 
+#attendanceTable tr.current-user-row td.oh1 {
+    background: #d1c4e9 !important;
+    border: 2px solid #7e57c2;
+}
+
+#attendanceTable tr.current-user-row td.oh2 {
+    background: #d1c4e9 !important;
+    border: 2px solid #7e57c2;
+}
+
 #attendanceTable td.date-cell {
     cursor: pointer;
     transition: all 0.2s;
 }
 
-#attendanceTable td.date-cell:not(.weekend):not(.holiday):not(.locked):hover {
+#attendanceTable td.date-cell:not(.weekend):not(.holiday):not(.optional-holiday):not(.locked):hover {
     background: #e3f2fd !important;
     cursor: pointer;
     transform: scale(1.05);
     box-shadow: 0 2px 8px rgba(0, 25, 101, 0.25);
     transition: all 0.2s;
+}
+
+#attendanceTable td.optional-holiday {
+    background: #f3e5f5;
+    color: #6a1b9a;
+    cursor: pointer;
+}
+
+#attendanceTable td.optional-holiday:hover {
+    background: #e1bee7 !important;
 }
 
 #attendanceTable td.weekend {
@@ -543,6 +576,13 @@ input[type="password"]:focus {
 #attendanceTable td.leave {
     background: #FFB6C1 !important;
     color: #c62828;
+    font-weight: 600;
+}
+
+#attendanceTable td.oh1,
+#attendanceTable td.oh2 {
+    background: #d1c4e9 !important;
+    color: #4a148c;
     font-weight: 600;
 }
 
@@ -625,6 +665,10 @@ input[type="password"]:focus {
 
 .total-stat {
     background: linear-gradient(135deg, #e3f2fd 0%, #f0f7ff 100%);
+}
+
+.oh-stat {
+    background: linear-gradient(135deg, #f3e5f5 0%, #f9f0fa 100%);
 }
 
 /* Office Footprint Compliance Box - Capsule Style */
@@ -765,6 +809,11 @@ input[type="password"]:focus {
     transition: all 0.3s;
 }
 
+.holiday-item.optional {
+    background: linear-gradient(135deg, #f3e5f5 0%, #f9f0fa 100%);
+    border-left: 4px solid #9c27b0;
+}
+
 .holiday-item:hover {
     transform: translateX(4px);
     box-shadow: 0 2px 8px rgba(255, 167, 38, 0.2);
@@ -848,9 +897,19 @@ input[type="password"]:focus {
     border-color: #e91e63;
 }
 
+.weekend-color {
+    background: #f5f5f5;
+    border-color: #bdbdbd;
+}
+
 .holiday-color {
     background: #e0e0e0;
     border-color: #90a4ae;
+}
+
+.optional-holiday-color {
+    background: #d1c4e9;
+    border-color: #7e57c2;
 }
 
 .total-color {
@@ -993,10 +1052,17 @@ input[type="password"]:focus {
     margin-bottom: 0;
 }
 
-.status-popup-item:hover {
+.status-popup-item:hover:not(.disabled) {
     transform: translateX(6px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     border-color: #001965;
+}
+
+.status-popup-item.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #f5f5f5 !important;
+    color: #999 !important;
 }
 
 .status-popup-item.wfo-option {
@@ -1042,6 +1108,17 @@ input[type="password"]:focus {
 
 .status-popup-item.leave-option:hover {
     background: #ff9eaa;
+}
+
+.status-popup-item.oh1-option,
+.status-popup-item.oh2-option {
+    background: #d1c4e9;
+    color: #4a148c;
+}
+
+.status-popup-item.oh1-option:hover,
+.status-popup-item.oh2-option:hover {
+    background: #b39ddb;
 }
 
 .status-popup-item.clear-option {

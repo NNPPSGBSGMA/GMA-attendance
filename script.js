@@ -19,6 +19,19 @@ const HOLIDAYS_2026 = [
     '2026-11-10', '2026-12-25'
 ];
 
+const OPTIONAL_HOLIDAYS_2026 = [
+    '2026-01-01', // New Year
+    '2026-03-02', // Holi
+    '2026-04-03', // Good Friday
+    '2026-04-14', // Vishu / Ambedkar Jayanthi
+    '2026-08-21', // Varamahalakshmi Vrata
+    '2026-08-26', // Eid-Milad
+    '2026-08-28', // Raksha Bandhan
+    '2026-09-17', // Vishwakarma Jayanthi
+    '2026-10-21', // Vijayadasami
+    '2026-11-24'  // Guru Nanak Jayanthi
+];
+
 const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const STATUS_OPTIONS = [
@@ -34,7 +47,6 @@ const USER_PHOTOS = {
     'XXXX': 'https://via.placeholder.com/40/001965/ffffff?text=XX',
     'YYYY': 'https://via.placeholder.com/40/001965/ffffff?text=YY',
     'ZZZZ': 'https://via.placeholder.com/40/001965/ffffff?text=ZZ',
-    // Add more users as needed
 };
 
 // ==================== AUTHENTICATION ====================
@@ -50,14 +62,14 @@ async function loadUserDatabase() {
         if (response.ok) {
             const data = await response.json();
             USERS_CACHE = data.record.users || {};
-            console.log('✅ User database loaded:', Object.keys(USERS_CACHE).length, 'users');
+            console.log('? User database loaded:', Object.keys(USERS_CACHE).length, 'users');
             return true;
         } else {
-            console.error('❌ Failed to load user database');
+            console.error('? Failed to load user database');
             return false;
         }
     } catch (error) {
-        console.error('❌ Error loading user database:', error);
+        console.error('? Error loading user database:', error);
         return false;
     }
 }
@@ -84,7 +96,7 @@ async function handleLogin() {
         return;
     }
     
-    console.log('🔍 Checking credentials for:', code);
+    console.log('? Checking credentials for:', code);
     
     if (USERS_CACHE[code] && USERS_CACHE[code].password === password) {
         currentLoggedInUser = {
@@ -93,7 +105,7 @@ async function handleLogin() {
             name: USERS_CACHE[code].name
         };
         
-        console.log('✅ Login successful for:', code);
+        console.log('? Login successful for:', code);
         
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
@@ -106,7 +118,7 @@ async function handleLogin() {
             document.getElementById('reportBtn').style.display = 'inline-block';
         }
         
-        console.log('📅 Initializing calendar...');
+        console.log('? Initializing calendar...');
         initializeCalendar();
         
     } else {
@@ -132,7 +144,6 @@ function handleLogout() {
         document.getElementById('reportBtn').style.display = 'none';
         document.getElementById('statsContainer').style.display = 'none';
         
-        // Remove compliance box if exists
         const complianceBox = document.getElementById('complianceBox');
         if (complianceBox) {
             complianceBox.remove();
@@ -153,8 +164,8 @@ function getUserCodes() {
 // ==================== CALENDAR FUNCTIONS ====================
 
 function initializeCalendar() {
-    console.log('🚀 initializeCalendar called');
-    console.log('📊 Available users:', getUserCodes().length);
+    console.log('? initializeCalendar called');
+    console.log('? Available users:', getUserCodes().length);
     loadAttendanceData();
 }
 
@@ -169,13 +180,13 @@ async function loadAttendanceData() {
         if (response.ok) {
             const data = await response.json();
             attendanceData = data.record || {};
-            console.log('✅ Attendance data loaded');
+            console.log('? Attendance data loaded');
         } else {
-            console.log('⚠️ No attendance data found, starting fresh');
+            console.log('?? No attendance data found, starting fresh');
             attendanceData = {};
         }
     } catch (error) {
-        console.error('❌ Error loading attendance data:', error);
+        console.error('? Error loading attendance data:', error);
         attendanceData = {};
     }
     
@@ -194,16 +205,16 @@ async function saveAttendanceData() {
         });
         
         if (response.ok) {
-            console.log('✅ Data saved to server');
+            console.log('? Data saved to server');
             return true;
         } else {
             const errorData = await response.json();
-            console.error('❌ Failed to save:', errorData);
+            console.error('? Failed to save:', errorData);
             alert('Failed to save data: ' + (errorData.message || 'Unknown error'));
             return false;
         }
     } catch (error) {
-        console.error('❌ Error saving data:', error);
+        console.error('? Error saving data:', error);
         alert('Error saving data. Check console for details.');
         return false;
     }
@@ -224,12 +235,29 @@ function isHoliday(year, month, day) {
     return HOLIDAYS_2026.includes(dateString);
 }
 
+function isOptionalHoliday(year, month, day) {
+    const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return OPTIONAL_HOLIDAYS_2026.includes(dateString);
+}
+
+function countOptionalHolidaysTaken(userCode) {
+    let count = 0;
+    if (attendanceData[userCode]) {
+        Object.keys(attendanceData[userCode]).forEach(dateKey => {
+            const status = attendanceData[userCode][dateKey];
+            if (status === 'oh1' || status === 'oh2') {
+                count++;
+            }
+        });
+    }
+    return count;
+}
+
 function formatDate(day, month) {
     return day + '-' + MONTH_ABBR[month];
 }
 
 function getUserPhotoUrl(userCode) {
-    // Return user photo if available, otherwise return placeholder with initials
     if (USER_PHOTOS[userCode]) {
         return USER_PHOTOS[userCode];
     }
@@ -238,13 +266,13 @@ function getUserPhotoUrl(userCode) {
 }
 
 function renderCalendar() {
-    console.log('🎨 Rendering calendar...');
+    console.log('? Rendering calendar...');
     
     const userCodes = getUserCodes();
-    console.log('👥 Rendering for users:', userCodes);
+    console.log('? Rendering for users:', userCodes);
     
     if (!userCodes || userCodes.length === 0) {
-        console.error('❌ No users available to render calendar');
+        console.error('? No users available to render calendar');
         const table = document.getElementById('attendanceTable');
         table.innerHTML = '<tr><td style="padding: 20px; text-align: center; color: red;">Error: No user data available. Please logout and login again.</td></tr>';
         return;
@@ -275,6 +303,8 @@ function renderCalendar() {
             th.classList.add('weekend-header');
         } else if (isHoliday(year, month, day)) {
             th.classList.add('holiday-header');
+        } else if (isOptionalHoliday(year, month, day)) {
+            th.classList.add('optional-holiday-header');
         }
         
         headerRow.appendChild(th);
@@ -323,6 +353,7 @@ function renderCalendar() {
             
             const weekend = isWeekend(year, month, day);
             const holiday = isHoliday(year, month, day);
+            const optionalHoliday = isOptionalHoliday(year, month, day);
             
             if (weekend) {
                 cell.classList.add('weekend');
@@ -330,6 +361,33 @@ function renderCalendar() {
             } else if (holiday) {
                 cell.classList.add('holiday');
                 cell.textContent = formatDate(day, month);
+            } else if (optionalHoliday) {
+                cell.classList.add('optional-holiday');
+                const canEdit = canEditRow(userCode);
+                const dateKey = cell.dataset.date;
+                const savedStatus = attendanceData[userCode] && attendanceData[userCode][dateKey];
+                
+                if (savedStatus) {
+                    cell.classList.add(savedStatus);
+                    if (savedStatus === 'oh1') {
+                        cell.textContent = 'Optional Holiday 1';
+                    } else if (savedStatus === 'oh2') {
+                        cell.textContent = 'Optional Holiday 2';
+                    } else {
+                        cell.textContent = formatDate(day, month);
+                    }
+                } else {
+                    cell.textContent = formatDate(day, month);
+                }
+                
+                if (canEdit) {
+                    cell.addEventListener('click', () => handleOptionalHolidayClick(cell, userCode, dateKey, day, month));
+                } else if (!isCurrentUser) {
+                    const lockSpan = document.createElement('span');
+                    lockSpan.className = 'lock-icon';
+                    lockSpan.innerHTML = '&#128274;';
+                    cell.insertBefore(lockSpan, cell.firstChild);
+                }
             } else {
                 const canEdit = canEditRow(userCode);
                 const dateKey = cell.dataset.date;
@@ -341,7 +399,6 @@ function renderCalendar() {
                 
                 const cellContent = document.createDocumentFragment();
                 
-                // Only add lock icon if NOT current user and not editable
                 if (!canEdit && !isCurrentUser) {
                     cell.classList.add('locked');
                     const lockSpan = document.createElement('span');
@@ -367,28 +424,157 @@ function renderCalendar() {
     });
     
     document.getElementById('monthSelector').value = currentMonth;
-    console.log('✅ Calendar rendered successfully with', userCodes.length, 'users');
+    console.log('? Calendar rendered successfully with', userCodes.length, 'users');
     
-    // Check and display statistics after rendering
     checkAndDisplayStats();
 }
 
-function handleCellClick(cell, userCode, dateKey, day, month) {
-    if (cell.classList.contains('weekend') || cell.classList.contains('holiday') || cell.classList.contains('locked')) {
+function handleOptionalHolidayClick(cell, userCode, dateKey, day, month) {
+    if (cell.classList.contains('locked')) {
         return;
     }
     
-    // Remove any existing popup
     if (activePopup) {
         activePopup.remove();
         activePopup = null;
     }
     
-    // Create popup menu
+    const ohCount = countOptionalHolidaysTaken(userCode);
+    const currentStatus = attendanceData[userCode] && attendanceData[userCode][dateKey];
+    
+    // Create popup menu with ALL options
     const popup = document.createElement('div');
     popup.className = 'status-popup';
     
-    // Add status options
+    // Add regular status options (WFO, Planned, etc.)
+    STATUS_OPTIONS.forEach(status => {
+        const item = document.createElement('div');
+        item.className = `status-popup-item ${status.value}-option`;
+        
+        const colorIndicator = document.createElement('div');
+        colorIndicator.className = 'status-color-indicator';
+        colorIndicator.style.background = status.color;
+        
+        const label = document.createElement('span');
+        label.textContent = status.label;
+        
+        item.appendChild(colorIndicator);
+        item.appendChild(label);
+        
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            updateCellStatus(cell, userCode, dateKey, status.value, day, month);
+            cell.classList.remove('oh1', 'oh2', 'wfo', 'planned', 'offsite', 'travel', 'leave');
+            cell.classList.add(status.value);
+            cell.textContent = formatDate(day, month);
+            popup.remove();
+            activePopup = null;
+            renderCalendar();
+        });
+        
+        popup.appendChild(item);
+    });
+    
+    // Add Optional Holiday 1 option
+    const oh1Item = document.createElement('div');
+    oh1Item.className = 'status-popup-item oh1-option';
+    if (ohCount >= 1 && currentStatus !== 'oh1') {
+        oh1Item.classList.add('disabled');
+    }
+    
+    const oh1Indicator = document.createElement('div');
+    oh1Indicator.className = 'status-color-indicator';
+    oh1Indicator.style.background = '#d1c4e9';
+    
+    const oh1Label = document.createElement('span');
+    oh1Label.textContent = 'Optional Holiday 1';
+    
+    oh1Item.appendChild(oh1Indicator);
+    oh1Item.appendChild(oh1Label);
+    
+    if (!oh1Item.classList.contains('disabled')) {
+        oh1Item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            updateCellStatus(cell, userCode, dateKey, 'oh1', day, month);
+            cell.classList.remove('wfo', 'planned', 'offsite', 'travel', 'leave', 'oh2');
+            cell.classList.add('oh1');
+            cell.textContent = 'Optional Holiday 1';
+            popup.remove();
+            activePopup = null;
+            renderCalendar();
+        });
+    }
+    
+    popup.appendChild(oh1Item);
+    
+    // Add Optional Holiday 2 option
+    const oh2Item = document.createElement('div');
+    oh2Item.className = 'status-popup-item oh2-option';
+    if (ohCount >= 2 && currentStatus !== 'oh2') {
+        oh2Item.classList.add('disabled');
+    }
+    
+    const oh2Indicator = document.createElement('div');
+    oh2Indicator.className = 'status-color-indicator';
+    oh2Indicator.style.background = '#d1c4e9';
+    
+    const oh2Label = document.createElement('span');
+    oh2Label.textContent = 'Optional Holiday 2';
+    
+    oh2Item.appendChild(oh2Indicator);
+    oh2Item.appendChild(oh2Label);
+    
+    if (!oh2Item.classList.contains('disabled')) {
+        oh2Item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            updateCellStatus(cell, userCode, dateKey, 'oh2', day, month);
+            cell.classList.remove('wfo', 'planned', 'offsite', 'travel', 'leave', 'oh1');
+            cell.classList.add('oh2');
+            cell.textContent = 'Optional Holiday 2';
+            popup.remove();
+            activePopup = null;
+            renderCalendar();
+        });
+    }
+    
+    popup.appendChild(oh2Item);
+    
+    // Add "Clear" option if cell has status
+    if (currentStatus) {
+        const clearItem = document.createElement('div');
+        clearItem.className = 'status-popup-item clear-option';
+        clearItem.innerHTML = '<span style="font-size: 16px;">\u{1f5d1}</span><span>Clear Status</span>';
+        
+        clearItem.addEventListener('click', (e) => {
+            e.stopPropagation();
+            updateCellStatus(cell, userCode, dateKey, '', day, month);
+            cell.classList.remove('oh1', 'oh2', 'wfo', 'planned', 'offsite', 'travel', 'leave');
+            cell.textContent = formatDate(day, month);
+            popup.remove();
+            activePopup = null;
+            renderCalendar();
+        });
+        
+        popup.appendChild(clearItem);
+    }
+    
+    // Position and show popup
+    showPopup(popup, cell);
+}
+
+function handleCellClick(cell, userCode, dateKey, day, month) {
+    if (cell.classList.contains('weekend') || cell.classList.contains('holiday') || cell.classList.contains('optional-holiday') || cell.classList.contains('locked')) {
+        return;
+    }
+    
+    if (activePopup) {
+        activePopup.remove();
+        activePopup = null;
+    }
+    
+    const popup = document.createElement('div');
+    popup.className = 'status-popup';
+    
     STATUS_OPTIONS.forEach(status => {
         const item = document.createElement('div');
         item.className = `status-popup-item ${status.value}-option`;
@@ -414,11 +600,10 @@ function handleCellClick(cell, userCode, dateKey, day, month) {
         popup.appendChild(item);
     });
     
-    // Add "Clear" option if cell has status
     if (attendanceData[userCode] && attendanceData[userCode][dateKey]) {
         const clearItem = document.createElement('div');
         clearItem.className = 'status-popup-item clear-option';
-        clearItem.innerHTML = '<span style="font-size: 16px;">🗑️</span><span>Clear Status</span>';
+        clearItem.innerHTML = '<span style="font-size: 16px;">\u{1f5d1}</span><span>Clear Status</span>';
         
         clearItem.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -431,35 +616,32 @@ function handleCellClick(cell, userCode, dateKey, day, month) {
         popup.appendChild(clearItem);
     }
     
-    // Append popup to body
+    showPopup(popup, cell);
+}
+
+function showPopup(popup, cell) {
     document.body.appendChild(popup);
     popup.style.display = 'block';
     popup.style.position = 'fixed';
     
-    // Get cell position
     const cellRect = cell.getBoundingClientRect();
     const popupRect = popup.getBoundingClientRect();
     
-    // Calculate position
     let left = cellRect.left;
     let top = cellRect.bottom + 5;
     
-    // Check if popup goes off-screen to the right
     if (left + popupRect.width > window.innerWidth) {
         left = cellRect.right - popupRect.width;
     }
     
-    // Check if popup goes off-screen at the bottom
     if (top + popupRect.height > window.innerHeight) {
         top = cellRect.top - popupRect.height - 5;
     }
     
-    // Ensure popup doesn't go off-screen left
     if (left < 0) {
         left = 5;
     }
     
-    // Ensure popup doesn't go off-screen top
     if (top < 0) {
         top = cellRect.bottom + 5;
     }
@@ -469,7 +651,6 @@ function handleCellClick(cell, userCode, dateKey, day, month) {
     
     activePopup = popup;
     
-    // Close popup when clicking outside
     setTimeout(() => {
         document.addEventListener('click', function closePopup(e) {
             if (popup && !popup.contains(e.target) && e.target !== cell) {
@@ -518,7 +699,6 @@ function renderCellContent(cell, userCode, dateKey, day, month) {
     
     const cellContent = document.createDocumentFragment();
     
-    // Only add lock icon if NOT current user and not editable
     if (!canEdit && !isCurrentUser) {
         const lockSpan = document.createElement('span');
         lockSpan.className = 'lock-icon';
@@ -548,7 +728,7 @@ async function submitAttendance() {
         document.getElementById('pendingChanges').style.display = 'none';
         
         const successMsg = document.getElementById('successMessage');
-        successMsg.textContent = '✓ Data saved to server! Everyone can now see your changes.';
+        successMsg.textContent = '? Data saved to server! Everyone can now see your changes.';
         successMsg.style.display = 'block';
         setTimeout(() => {
             successMsg.style.display = 'none';
@@ -601,7 +781,6 @@ function checkAndDisplayStats() {
         updateStats();
     } else {
         document.getElementById('statsContainer').style.display = 'none';
-        // Remove compliance box if no data
         const complianceBox = document.getElementById('complianceBox');
         if (complianceBox) {
             complianceBox.remove();
@@ -624,6 +803,13 @@ function calculateCompliance() {
         const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         
         if (!isWeekend(year, month, day) && !isHoliday(year, month, day)) {
+            if (isOptionalHoliday(year, month, day)) {
+                const status = attendanceData[userCode] && attendanceData[userCode][dateKey];
+                if (status === 'oh1' || status === 'oh2') {
+                    continue;
+                }
+            }
+            
             totalWorkingDays++;
             
             if (attendanceData[userCode] && attendanceData[userCode][dateKey] === 'wfo') {
@@ -657,12 +843,12 @@ function renderComplianceBox() {
     let statusText = 'Below Target';
     if (compliance.percentage >= compliance.required) {
         statusClass = 'success';
-        statusText = '✓ Target Achieved!';
+        statusText = '\u2705 Target Achieved!';
     } else if (compliance.percentage >= 50) {
         statusClass = 'warning';
-        statusText = '⚡ Approaching Target';
+        statusText = '\u25B2 Approaching Target';
     } else {
-        statusText = '⚠ Below Target';
+        statusText = '\u25BC Below Target';
     }
     
     complianceBox.innerHTML = `
@@ -703,6 +889,7 @@ function updateStats() {
         offsite: 0,
         travel: 0,
         leave: 0,
+        oh: 0,
         total: 0
     };
     
@@ -710,12 +897,23 @@ function updateStats() {
         const dateKey = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
         
         if (!isWeekend(year, month, day) && !isHoliday(year, month, day)) {
-            stats.total++;
-            
-            if (attendanceData[userCode] && attendanceData[userCode][dateKey]) {
-                const status = attendanceData[userCode][dateKey];
-                if (stats.hasOwnProperty(status)) {
-                    stats[status]++;
+            if (isOptionalHoliday(year, month, day)) {
+                const status = attendanceData[userCode] && attendanceData[userCode][dateKey];
+                if (status === 'oh1' || status === 'oh2') {
+                    stats.oh++;
+                } else {
+                    stats.total++;
+                    if (status && stats.hasOwnProperty(status)) {
+                        stats[status]++;
+                    }
+                }
+            } else {
+                stats.total++;
+                if (attendanceData[userCode] && attendanceData[userCode][dateKey]) {
+                    const status = attendanceData[userCode][dateKey];
+                    if (stats.hasOwnProperty(status)) {
+                        stats[status]++;
+                    }
                 }
             }
         }
@@ -730,12 +928,11 @@ function updateStats() {
             '<div class="stat-item offsite-stat"><div class="stat-color offsite-color"></div><div><div class="stat-label">Offsite/Meeting</div><div class="stat-value">' + stats.offsite + ' days</div></div></div>' +
             '<div class="stat-item travel-stat"><div class="stat-color travel-color"></div><div><div class="stat-label">Onsite/Travel</div><div class="stat-value">' + stats.travel + ' days</div></div></div>' +
             '<div class="stat-item leave-stat"><div class="stat-color leave-color"></div><div><div class="stat-label">Leave</div><div class="stat-value">' + stats.leave + ' days</div></div></div>' +
+            '<div class="stat-item oh-stat"><div class="stat-color optional-holiday-color"></div><div><div class="stat-label">Optional Holidays</div><div class="stat-value">' + stats.oh + ' days</div></div></div>' +
             '<div class="stat-item total-stat"><div class="stat-color total-color"></div><div><div class="stat-label">Working Days</div><div class="stat-value">' + stats.total + ' days</div></div></div>' +
         '</div>';
     
     statsContainer.style.display = 'block';
-    
-    // Render compliance box
     renderComplianceBox();
 }
 
@@ -755,20 +952,32 @@ function generateReport() {
     
     let reportHTML = '<h3>Attendance Report - ' + monthName + ' 2026</h3>';
     reportHTML += '<div class="report-table-wrapper"><table class="report-table">';
-    reportHTML += '<thead><tr><th>User</th><th>WFO</th><th>Planned</th><th>Offsite</th><th>Travel</th><th>Leave</th><th>Total Days</th><th>Compliance %</th></tr></thead><tbody>';
+    reportHTML += '<thead><tr><th>User</th><th>WFO</th><th>Planned</th><th>Offsite</th><th>Travel</th><th>Leave</th><th>Optional Holidays</th><th>Total Days</th><th>Compliance %</th></tr></thead><tbody>';
     
     getUserCodes().forEach(userCode => {
-        let stats = { wfo: 0, planned: 0, offsite: 0, travel: 0, leave: 0, total: 0 };
+        let stats = { wfo: 0, planned: 0, offsite: 0, travel: 0, leave: 0, oh: 0, total: 0 };
         
         for (let day = 1; day <= daysInMonth; day++) {
             const dateKey = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
             
             if (!isWeekend(year, month, day) && !isHoliday(year, month, day)) {
-                stats.total++;
-                if (attendanceData[userCode] && attendanceData[userCode][dateKey]) {
-                    const status = attendanceData[userCode][dateKey];
-                    if (stats.hasOwnProperty(status)) {
-                        stats[status]++;
+                if (isOptionalHoliday(year, month, day)) {
+                    const status = attendanceData[userCode] && attendanceData[userCode][dateKey];
+                    if (status === 'oh1' || status === 'oh2') {
+                        stats.oh++;
+                    } else {
+                        stats.total++;
+                        if (status && stats.hasOwnProperty(status)) {
+                            stats[status]++;
+                        }
+                    }
+                } else {
+                    stats.total++;
+                    if (attendanceData[userCode] && attendanceData[userCode][dateKey]) {
+                        const status = attendanceData[userCode][dateKey];
+                        if (stats.hasOwnProperty(status)) {
+                            stats[status]++;
+                        }
                     }
                 }
             }
@@ -779,7 +988,7 @@ function generateReport() {
         
         reportHTML += '<tr><td><strong>' + userCode + '</strong></td>';
         reportHTML += '<td>' + stats.wfo + '</td><td>' + stats.planned + '</td><td>' + stats.offsite + '</td>';
-        reportHTML += '<td>' + stats.travel + '</td><td>' + stats.leave + '</td><td><strong>' + stats.total + '</strong></td>';
+        reportHTML += '<td>' + stats.travel + '</td><td>' + stats.leave + '</td><td>' + stats.oh + '</td><td><strong>' + stats.total + '</strong></td>';
         reportHTML += '<td style="color: ' + complianceColor + '; font-weight: 700;"><strong>' + compliancePercent + '%</strong></td></tr>';
     });
     
@@ -812,6 +1021,15 @@ function exportToCSV() {
                 csv += 'Weekend,';
             } else if (isHoliday(year, month, day)) {
                 csv += 'Holiday,';
+            } else if (isOptionalHoliday(year, month, day)) {
+                const status = attendanceData[userCode] && attendanceData[userCode][dateKey];
+                if (status === 'oh1' || status === 'oh2') {
+                    csv += status.toUpperCase() + ',';
+                } else if (status) {
+                    csv += status.toUpperCase() + ',';
+                } else {
+                    csv += 'Optional Holiday,';
+                }
             } else if (attendanceData[userCode] && attendanceData[userCode][dateKey]) {
                 csv += attendanceData[userCode][dateKey].toUpperCase() + ',';
             } else {
@@ -836,25 +1054,35 @@ function exportReportToCSV() {
     const monthName = new Date(year, month).toLocaleDateString('en-US', { month: 'long' });
     const daysInMonth = getDaysInMonth(year, month);
     
-    let csv = 'Comprehensive Attendance Report - ' + monthName + ' 2026\n\nUser,WFO,Planned,Offsite,Travel,Leave,Total Working Days,Compliance %\n';
+    let csv = 'Comprehensive Attendance Report - ' + monthName + ' 2026\n\nUser,WFO,Planned,Offsite,Travel,Leave,Optional Holidays,Total Working Days,Compliance %\n';
     
     getUserCodes().forEach(userCode => {
-        let stats = { wfo: 0, planned: 0, offsite: 0, travel: 0, leave: 0, total: 0 };
+        let stats = { wfo: 0, planned: 0, offsite: 0, travel: 0, leave: 0, oh: 0, total: 0 };
         
         for (let day = 1; day <= daysInMonth; day++) {
             const dateKey = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
             if (!isWeekend(year, month, day) && !isHoliday(year, month, day)) {
-                stats.total++;
-                if (attendanceData[userCode] && attendanceData[userCode][dateKey]) {
-                    const status = attendanceData[userCode][dateKey];
-                    if (stats.hasOwnProperty(status)) stats[status]++;
+                if (isOptionalHoliday(year, month, day)) {
+                    const status = attendanceData[userCode] && attendanceData[userCode][dateKey];
+                    if (status === 'oh1' || status === 'oh2') {
+                        stats.oh++;
+                    } else {
+                        stats.total++;
+                        if (status && stats.hasOwnProperty(status)) stats[status]++;
+                    }
+                } else {
+                    stats.total++;
+                    if (attendanceData[userCode] && attendanceData[userCode][dateKey]) {
+                        const status = attendanceData[userCode][dateKey];
+                        if (stats.hasOwnProperty(status)) stats[status]++;
+                    }
                 }
             }
         }
         
         const compliancePercent = stats.total > 0 ? Math.round((stats.wfo / stats.total) * 100) : 0;
         
-        csv += userCode + ',' + stats.wfo + ',' + stats.planned + ',' + stats.offsite + ',' + stats.travel + ',' + stats.leave + ',' + stats.total + ',' + compliancePercent + '%\n';
+        csv += userCode + ',' + stats.wfo + ',' + stats.planned + ',' + stats.offsite + ',' + stats.travel + ',' + stats.leave + ',' + stats.oh + ',' + stats.total + ',' + compliancePercent + '%\n';
     });
     
     const blob = new Blob([csv], { type: 'text/csv' });
