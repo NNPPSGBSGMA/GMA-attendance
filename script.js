@@ -487,7 +487,7 @@ function handleOptionalHolidayClick(cell, userCode, dateKey, day, month) {
     oh1Indicator.style.background = '#d1c4e9';
     
     const oh1Label = document.createElement('span');
-    oh1Label.textContent = 'Optional Holiday 1';
+    oh1Label.textContent = 'OH 1';
     
     oh1Item.appendChild(oh1Indicator);
     oh1Item.appendChild(oh1Label);
@@ -519,7 +519,7 @@ function handleOptionalHolidayClick(cell, userCode, dateKey, day, month) {
     oh2Indicator.style.background = '#d1c4e9';
     
     const oh2Label = document.createElement('span');
-    oh2Label.textContent = 'Optional Holiday 2';
+    oh2Label.textContent = 'OH 2';
     
     oh2Item.appendChild(oh2Indicator);
     oh2Item.appendChild(oh2Label);
