@@ -29,6 +29,14 @@ const STATUS_OPTIONS = [
     { value: 'leave', label: 'Leave', color: '#FFB6C1' }
 ];
 
+// User Photos - Add actual photo URLs here
+const USER_PHOTOS = {
+    'XXXX': 'https://via.placeholder.com/40/001965/ffffff?text=XX',
+    'YYYY': 'https://via.placeholder.com/40/001965/ffffff?text=YY',
+    'ZZZZ': 'https://via.placeholder.com/40/001965/ffffff?text=ZZ',
+    // Add more users as needed
+};
+
 // ==================== AUTHENTICATION ====================
 
 async function loadUserDatabase() {
@@ -42,14 +50,14 @@ async function loadUserDatabase() {
         if (response.ok) {
             const data = await response.json();
             USERS_CACHE = data.record.users || {};
-            console.log('âœ… User database loaded:', Object.keys(USERS_CACHE).length, 'users');
+            console.log('✅ User database loaded:', Object.keys(USERS_CACHE).length, 'users');
             return true;
         } else {
-            console.error('âŒ Failed to load user database');
+            console.error('❌ Failed to load user database');
             return false;
         }
     } catch (error) {
-        console.error('âŒ Error loading user database:', error);
+        console.error('❌ Error loading user database:', error);
         return false;
     }
 }
@@ -76,7 +84,7 @@ async function handleLogin() {
         return;
     }
     
-    console.log('ðŸ” Checking credentials for:', code);
+    console.log('🔍 Checking credentials for:', code);
     
     if (USERS_CACHE[code] && USERS_CACHE[code].password === password) {
         currentLoggedInUser = {
@@ -85,7 +93,7 @@ async function handleLogin() {
             name: USERS_CACHE[code].name
         };
         
-        console.log('âœ… Login successful for:', code);
+        console.log('✅ Login successful for:', code);
         
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
@@ -98,7 +106,7 @@ async function handleLogin() {
             document.getElementById('reportBtn').style.display = 'inline-block';
         }
         
-        console.log('ðŸ“… Initializing calendar...');
+        console.log('📅 Initializing calendar...');
         initializeCalendar();
         
     } else {
@@ -123,6 +131,12 @@ function handleLogout() {
         document.getElementById('adminNotice').style.display = 'none';
         document.getElementById('reportBtn').style.display = 'none';
         document.getElementById('statsContainer').style.display = 'none';
+        
+        // Remove compliance box if exists
+        const complianceBox = document.getElementById('complianceBox');
+        if (complianceBox) {
+            complianceBox.remove();
+        }
     }
 }
 
@@ -139,8 +153,8 @@ function getUserCodes() {
 // ==================== CALENDAR FUNCTIONS ====================
 
 function initializeCalendar() {
-    console.log('ðŸš€ initializeCalendar called');
-    console.log('ðŸ“Š Available users:', getUserCodes().length);
+    console.log('🚀 initializeCalendar called');
+    console.log('📊 Available users:', getUserCodes().length);
     loadAttendanceData();
 }
 
@@ -155,13 +169,13 @@ async function loadAttendanceData() {
         if (response.ok) {
             const data = await response.json();
             attendanceData = data.record || {};
-            console.log('âœ… Attendance data loaded');
+            console.log('✅ Attendance data loaded');
         } else {
-            console.log('âš ï¸ No attendance data found, starting fresh');
+            console.log('⚠️ No attendance data found, starting fresh');
             attendanceData = {};
         }
     } catch (error) {
-        console.error('âŒ Error loading attendance data:', error);
+        console.error('❌ Error loading attendance data:', error);
         attendanceData = {};
     }
     
@@ -180,16 +194,16 @@ async function saveAttendanceData() {
         });
         
         if (response.ok) {
-            console.log('âœ… Data saved to server');
+            console.log('✅ Data saved to server');
             return true;
         } else {
             const errorData = await response.json();
-            console.error('âŒ Failed to save:', errorData);
+            console.error('❌ Failed to save:', errorData);
             alert('Failed to save data: ' + (errorData.message || 'Unknown error'));
             return false;
         }
     } catch (error) {
-        console.error('âŒ Error saving data:', error);
+        console.error('❌ Error saving data:', error);
         alert('Error saving data. Check console for details.');
         return false;
     }
@@ -214,14 +228,23 @@ function formatDate(day, month) {
     return day + '-' + MONTH_ABBR[month];
 }
 
+function getUserPhotoUrl(userCode) {
+    // Return user photo if available, otherwise return placeholder with initials
+    if (USER_PHOTOS[userCode]) {
+        return USER_PHOTOS[userCode];
+    }
+    const initials = userCode.substring(0, 2);
+    return `https://ui-avatars.com/api/?name=${initials}&background=001965&color=ffffff&size=40&bold=true`;
+}
+
 function renderCalendar() {
-    console.log('ðŸŽ¨ Rendering calendar...');
+    console.log('🎨 Rendering calendar...');
     
     const userCodes = getUserCodes();
-    console.log('ðŸ‘¥ Rendering for users:', userCodes);
+    console.log('👥 Rendering for users:', userCodes);
     
     if (!userCodes || userCodes.length === 0) {
-        console.error('âŒ No users available to render calendar');
+        console.error('❌ No users available to render calendar');
         const table = document.getElementById('attendanceTable');
         table.innerHTML = '<tr><td style="padding: 20px; text-align: center; color: red;">Error: No user data available. Please logout and login again.</td></tr>';
         return;
@@ -264,15 +287,32 @@ function renderCalendar() {
         const row = document.createElement('tr');
         row.dataset.user = userCode;
         
-        if (currentLoggedInUser && currentLoggedInUser.code === userCode) {
+        const isCurrentUser = currentLoggedInUser && currentLoggedInUser.code === userCode;
+        if (isCurrentUser) {
             row.classList.add('current-user-row');
         }
         
+        // Create name cell with thumbnail
         const nameCell = document.createElement('td');
         nameCell.className = 'name-cell';
-        nameCell.textContent = userCode;
+        
+        const thumbnail = document.createElement('img');
+        thumbnail.className = 'user-thumbnail';
+        thumbnail.src = getUserPhotoUrl(userCode);
+        thumbnail.alt = userCode;
+        thumbnail.onerror = function() {
+            this.src = `https://ui-avatars.com/api/?name=${userCode.substring(0,2)}&background=001965&color=ffffff&size=40&bold=true`;
+        };
+        
+        const userName = document.createElement('span');
+        userName.className = 'user-name';
+        userName.textContent = userCode;
+        
+        nameCell.appendChild(thumbnail);
+        nameCell.appendChild(userName);
         row.appendChild(nameCell);
         
+        // Create date cells
         for (let day = 1; day <= daysInMonth; day++) {
             const cell = document.createElement('td');
             cell.className = 'date-cell';
@@ -301,7 +341,8 @@ function renderCalendar() {
                 
                 const cellContent = document.createDocumentFragment();
                 
-                if (!canEdit) {
+                // Only add lock icon if NOT current user and not editable
+                if (!canEdit && !isCurrentUser) {
                     cell.classList.add('locked');
                     const lockSpan = document.createElement('span');
                     lockSpan.className = 'lock-icon';
@@ -326,7 +367,10 @@ function renderCalendar() {
     });
     
     document.getElementById('monthSelector').value = currentMonth;
-    console.log('âœ… Calendar rendered successfully with', userCodes.length, 'users');
+    console.log('✅ Calendar rendered successfully with', userCodes.length, 'users');
+    
+    // Check and display statistics after rendering
+    checkAndDisplayStats();
 }
 
 function handleCellClick(cell, userCode, dateKey, day, month) {
@@ -374,7 +418,7 @@ function handleCellClick(cell, userCode, dateKey, day, month) {
     if (attendanceData[userCode] && attendanceData[userCode][dateKey]) {
         const clearItem = document.createElement('div');
         clearItem.className = 'status-popup-item clear-option';
-        clearItem.innerHTML = '<span style="font-size: 16px;">✖</span><span>Clear Status</span>';
+        clearItem.innerHTML = '<span style="font-size: 16px;">🗑️</span><span>Clear Status</span>';
         
         clearItem.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -387,10 +431,10 @@ function handleCellClick(cell, userCode, dateKey, day, month) {
         popup.appendChild(clearItem);
     }
     
-    // Append popup to body first to calculate dimensions
+    // Append popup to body
     document.body.appendChild(popup);
     popup.style.display = 'block';
-    popup.style.position = 'fixed'; // Use fixed positioning
+    popup.style.position = 'fixed';
     
     // Get cell position
     const cellRect = cell.getBoundingClientRect();
@@ -461,6 +505,7 @@ function updateCellStatus(cell, userCode, dateKey, status, day, month) {
 
 function renderCellContent(cell, userCode, dateKey, day, month) {
     const canEdit = canEditRow(userCode);
+    const isCurrentUser = currentLoggedInUser && currentLoggedInUser.code === userCode;
     
     cell.innerHTML = '';
     cell.classList.remove('wfo', 'planned', 'offsite', 'travel', 'leave');
@@ -473,7 +518,8 @@ function renderCellContent(cell, userCode, dateKey, day, month) {
     
     const cellContent = document.createDocumentFragment();
     
-    if (!canEdit) {
+    // Only add lock icon if NOT current user and not editable
+    if (!canEdit && !isCurrentUser) {
         const lockSpan = document.createElement('span');
         lockSpan.className = 'lock-icon';
         lockSpan.innerHTML = '&#128274;';
@@ -502,7 +548,7 @@ async function submitAttendance() {
         document.getElementById('pendingChanges').style.display = 'none';
         
         const successMsg = document.getElementById('successMessage');
-        successMsg.textContent = 'Data saved to server! Everyone can now see your changes.';
+        successMsg.textContent = '✓ Data saved to server! Everyone can now see your changes.';
         successMsg.style.display = 'block';
         setTimeout(() => {
             successMsg.style.display = 'none';
@@ -532,7 +578,6 @@ function changeMonth() {
     
     currentMonth = newMonth;
     renderCalendar();
-    checkAndDisplayStats();
 }
 
 function checkAndDisplayStats() {
@@ -556,7 +601,91 @@ function checkAndDisplayStats() {
         updateStats();
     } else {
         document.getElementById('statsContainer').style.display = 'none';
+        // Remove compliance box if no data
+        const complianceBox = document.getElementById('complianceBox');
+        if (complianceBox) {
+            complianceBox.remove();
+        }
     }
+}
+
+function calculateCompliance() {
+    if (!currentLoggedInUser) return null;
+    
+    const userCode = currentLoggedInUser.code;
+    const year = 2026;
+    const month = currentMonth;
+    const daysInMonth = getDaysInMonth(year, month);
+    
+    let wfoDays = 0;
+    let totalWorkingDays = 0;
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        
+        if (!isWeekend(year, month, day) && !isHoliday(year, month, day)) {
+            totalWorkingDays++;
+            
+            if (attendanceData[userCode] && attendanceData[userCode][dateKey] === 'wfo') {
+                wfoDays++;
+            }
+        }
+    }
+    
+    const percentage = totalWorkingDays > 0 ? Math.round((wfoDays / totalWorkingDays) * 100) : 0;
+    const required = 65;
+    
+    return { percentage, wfoDays, totalWorkingDays, required };
+}
+
+function renderComplianceBox() {
+    const compliance = calculateCompliance();
+    if (!compliance) return;
+    
+    const statsContainer = document.getElementById('statsContainer');
+    
+    let existingBox = document.getElementById('complianceBox');
+    if (existingBox) {
+        existingBox.remove();
+    }
+    
+    const complianceBox = document.createElement('div');
+    complianceBox.id = 'complianceBox';
+    complianceBox.className = 'compliance-box';
+    
+    let statusClass = 'danger';
+    let statusText = 'Below Target';
+    if (compliance.percentage >= compliance.required) {
+        statusClass = 'success';
+        statusText = '✓ Target Achieved!';
+    } else if (compliance.percentage >= 50) {
+        statusClass = 'warning';
+        statusText = '⚡ Approaching Target';
+    } else {
+        statusText = '⚠ Below Target';
+    }
+    
+    complianceBox.innerHTML = `
+        <h3>Office Footprint Compliance</h3>
+        <div class="compliance-content">
+            <div class="compliance-text">
+                <strong>${compliance.required}%</strong> of office footprint is mandatory<br>
+                You have reached <strong>${compliance.percentage}%</strong> ${statusText}<br>
+                <small>${compliance.wfoDays} WFO days out of ${compliance.totalWorkingDays} working days this month</small>
+            </div>
+            <div class="compliance-bar-container">
+                <div class="compliance-target-label">Target: 65%</div>
+                <div class="compliance-bar">
+                    <div class="compliance-target-line"></div>
+                    <div class="compliance-fill ${statusClass}" style="width: ${Math.min(compliance.percentage, 100)}%">
+                        ${compliance.percentage}%
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    statsContainer.parentNode.insertBefore(complianceBox, statsContainer.nextSibling);
 }
 
 function updateStats() {
@@ -605,6 +734,9 @@ function updateStats() {
         '</div>';
     
     statsContainer.style.display = 'block';
+    
+    // Render compliance box
+    renderComplianceBox();
 }
 
 function generateReport() {
@@ -623,7 +755,7 @@ function generateReport() {
     
     let reportHTML = '<h3>Attendance Report - ' + monthName + ' 2026</h3>';
     reportHTML += '<div class="report-table-wrapper"><table class="report-table">';
-    reportHTML += '<thead><tr><th>User</th><th>WFO</th><th>Planned</th><th>Offsite</th><th>Travel</th><th>Leave</th><th>Total Days</th></tr></thead><tbody>';
+    reportHTML += '<thead><tr><th>User</th><th>WFO</th><th>Planned</th><th>Offsite</th><th>Travel</th><th>Leave</th><th>Total Days</th><th>Compliance %</th></tr></thead><tbody>';
     
     getUserCodes().forEach(userCode => {
         let stats = { wfo: 0, planned: 0, offsite: 0, travel: 0, leave: 0, total: 0 };
@@ -642,9 +774,13 @@ function generateReport() {
             }
         }
         
+        const compliancePercent = stats.total > 0 ? Math.round((stats.wfo / stats.total) * 100) : 0;
+        const complianceColor = compliancePercent >= 65 ? '#4caf50' : compliancePercent >= 50 ? '#ff9800' : '#f44336';
+        
         reportHTML += '<tr><td><strong>' + userCode + '</strong></td>';
         reportHTML += '<td>' + stats.wfo + '</td><td>' + stats.planned + '</td><td>' + stats.offsite + '</td>';
-        reportHTML += '<td>' + stats.travel + '</td><td>' + stats.leave + '</td><td><strong>' + stats.total + '</strong></td></tr>';
+        reportHTML += '<td>' + stats.travel + '</td><td>' + stats.leave + '</td><td><strong>' + stats.total + '</strong></td>';
+        reportHTML += '<td style="color: ' + complianceColor + '; font-weight: 700;"><strong>' + compliancePercent + '%</strong></td></tr>';
     });
     
     reportHTML += '</tbody></table></div>';
@@ -700,7 +836,7 @@ function exportReportToCSV() {
     const monthName = new Date(year, month).toLocaleDateString('en-US', { month: 'long' });
     const daysInMonth = getDaysInMonth(year, month);
     
-    let csv = 'Comprehensive Attendance Report - ' + monthName + ' 2026\n\nUser,WFO,Planned,Offsite,Travel,Leave,Total Working Days\n';
+    let csv = 'Comprehensive Attendance Report - ' + monthName + ' 2026\n\nUser,WFO,Planned,Offsite,Travel,Leave,Total Working Days,Compliance %\n';
     
     getUserCodes().forEach(userCode => {
         let stats = { wfo: 0, planned: 0, offsite: 0, travel: 0, leave: 0, total: 0 };
@@ -716,7 +852,9 @@ function exportReportToCSV() {
             }
         }
         
-        csv += userCode + ',' + stats.wfo + ',' + stats.planned + ',' + stats.offsite + ',' + stats.travel + ',' + stats.leave + ',' + stats.total + '\n';
+        const compliancePercent = stats.total > 0 ? Math.round((stats.wfo / stats.total) * 100) : 0;
+        
+        csv += userCode + ',' + stats.wfo + ',' + stats.planned + ',' + stats.offsite + ',' + stats.travel + ',' + stats.leave + ',' + stats.total + ',' + compliancePercent + '%\n';
     });
     
     const blob = new Blob([csv], { type: 'text/csv' });
