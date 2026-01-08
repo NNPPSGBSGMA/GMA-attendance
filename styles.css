@@ -260,6 +260,13 @@ input[type="password"]:focus {
     gap: 15px;
 }
 
+.controls-group {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
 .month-selector select {
     padding: 12px 20px;
     border: 2px solid #001965;
@@ -282,6 +289,59 @@ input[type="password"]:focus {
 .month-selector select:focus {
     outline: none;
     box-shadow: 0 0 0 4px rgba(0, 25, 101, 0.15);
+}
+
+/* User Search */
+.user-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+#userSearchInput {
+    padding: 12px 45px 12px 20px;
+    border: 2px solid #001965;
+    border-radius: 25px;
+    font-size: 14px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 500;
+    color: #001965;
+    transition: all 0.3s;
+    min-width: 300px;
+    box-shadow: 0 2px 8px rgba(0, 25, 101, 0.1);
+}
+
+#userSearchInput:focus {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(0, 25, 101, 0.15);
+    background: #f8fbfe;
+}
+
+#userSearchInput::placeholder {
+    color: #90a4ae;
+}
+
+.clear-search-btn {
+    position: absolute;
+    right: 8px;
+    background: #f44336;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    font-weight: bold;
+}
+
+.clear-search-btn:hover {
+    background: #d32f2f;
+    transform: scale(1.1);
 }
 
 .pending-changes {
@@ -466,40 +526,44 @@ input[type="password"]:focus {
     box-shadow: 0 0 10px rgba(0, 25, 101, 0.3);
 }
 
+/* NEW COLOR SCHEME - More Distinct Colors */
+
 /* Status colors override for current user row */
 #attendanceTable tr.current-user-row td.wfo {
-    background: #90EE90 !important;
-    border: 2px solid #4caf50;
+    background: #4CAF50 !important; /* Solid Green */
+    border: 2px solid #2E7D32;
+    color: white;
 }
 
 #attendanceTable tr.current-user-row td.planned {
-    background: #FFFF99 !important;
-    border: 2px solid #fbc02d;
+    background: #FF9800 !important; /* Solid Orange */
+    border: 2px solid #E65100;
+    color: white;
 }
 
 #attendanceTable tr.current-user-row td.offsite {
-    background: #DDA0DD !important;
-    border: 2px solid #9c27b0;
+    background: #9C27B0 !important; /* Solid Purple */
+    border: 2px solid #6A1B9A;
+    color: white;
 }
 
 #attendanceTable tr.current-user-row td.travel {
-    background: #87CEEB !important;
-    border: 2px solid #2196f3;
+    background: #2196F3 !important; /* Solid Blue */
+    border: 2px solid #0D47A1;
+    color: white;
 }
 
 #attendanceTable tr.current-user-row td.leave {
-    background: #FFB6C1 !important;
-    border: 2px solid #e91e63;
+    background: #F44336 !important; /* Solid Red */
+    border: 2px solid #C62828;
+    color: white;
 }
 
-#attendanceTable tr.current-user-row td.oh1 {
-    background: #d1c4e9 !important;
-    border: 2px solid #7e57c2;
-}
-
+#attendanceTable tr.current-user-row td.oh1,
 #attendanceTable tr.current-user-row td.oh2 {
-    background: #d1c4e9 !important;
-    border: 2px solid #7e57c2;
+    background: #FF00FF !important; /* MAGENTA */
+    border: 2px solid #C700C7;
+    color: white;
 }
 
 #attendanceTable td.date-cell {
@@ -548,42 +612,42 @@ input[type="password"]:focus {
     opacity: 0.5;
 }
 
-/* Status Colors */
+/* NEW STATUS COLORS - More Distinct */
 #attendanceTable td.wfo {
-    background: #90EE90 !important;
-    color: #1b5e20;
-    font-weight: 600;
+    background: #4CAF50 !important; /* Solid Green */
+    color: white;
+    font-weight: 700;
 }
 
 #attendanceTable td.planned {
-    background: #FFFF99 !important;
-    color: #f57f00;
-    font-weight: 600;
+    background: #FF9800 !important; /* Solid Orange */
+    color: white;
+    font-weight: 700;
 }
 
 #attendanceTable td.offsite {
-    background: #DDA0DD !important;
-    color: #6a1b9a;
-    font-weight: 600;
+    background: #9C27B0 !important; /* Solid Purple */
+    color: white;
+    font-weight: 700;
 }
 
 #attendanceTable td.travel {
-    background: #87CEEB !important;
-    color: #01579b;
-    font-weight: 600;
+    background: #2196F3 !important; /* Solid Blue */
+    color: white;
+    font-weight: 700;
 }
 
 #attendanceTable td.leave {
-    background: #FFB6C1 !important;
-    color: #c62828;
-    font-weight: 600;
+    background: #F44336 !important; /* Solid Red */
+    color: white;
+    font-weight: 700;
 }
 
 #attendanceTable td.oh1,
 #attendanceTable td.oh2 {
-    background: #d1c4e9 !important;
-    color: #4a148c;
-    font-weight: 600;
+    background: #FF00FF !important; /* MAGENTA */
+    color: white;
+    font-weight: 700;
 }
 
 /* Statistics */
@@ -643,32 +707,33 @@ input[type="password"]:focus {
     color: #001965;
 }
 
+/* NEW STAT ITEM COLORS */
 .wfo-stat {
-    background: linear-gradient(135deg, #e8f5e9 0%, #f1f8f4 100%);
+    background: linear-gradient(135deg, #C8E6C9 0%, #E8F5E9 100%);
 }
 
 .planned-stat {
-    background: linear-gradient(135deg, #fffde7 0%, #fffef5 100%);
+    background: linear-gradient(135deg, #FFE0B2 0%, #FFF3E0 100%);
 }
 
 .offsite-stat {
-    background: linear-gradient(135deg, #f3e5f5 0%, #f9f0fa 100%);
+    background: linear-gradient(135deg, #E1BEE7 0%, #F3E5F5 100%);
 }
 
 .travel-stat {
-    background: linear-gradient(135deg, #e1f5fe 0%, #f0faff 100%);
+    background: linear-gradient(135deg, #BBDEFB 0%, #E3F2FD 100%);
 }
 
 .leave-stat {
-    background: linear-gradient(135deg, #fce4ec 0%, #fef0f5 100%);
+    background: linear-gradient(135deg, #FFCDD2 0%, #FFEBEE 100%);
 }
 
 .total-stat {
-    background: linear-gradient(135deg, #e3f2fd 0%, #f0f7ff 100%);
+    background: linear-gradient(135deg, #B3C6E5 0%, #D6E1F3 100%);
 }
 
 .oh-stat {
-    background: linear-gradient(135deg, #f3e5f5 0%, #f9f0fa 100%);
+    background: linear-gradient(135deg, #FFD6FF 0%, #FFE6FF 100%);
 }
 
 /* Office Footprint Compliance Box - Capsule Style */
@@ -803,15 +868,15 @@ input[type="password"]:focus {
 
 .holiday-item {
     padding: 16px 20px;
-    background: linear-gradient(135deg, #fff8e1 0%, #fffef5 100%);
+    background: #e2f0fa;
     border-radius: 12px;
-    border-left: 4px solid #ffa726;
+    border-left: 4px solid #001965;
     transition: all 0.3s;
 }
 
 .holiday-item.optional {
-    background: linear-gradient(135deg, #f3e5f5 0%, #f9f0fa 100%);
-    border-left: 4px solid #9c27b0;
+    background: #ffe8f6;
+    border-left: 4px solid #ff00ff;
 }
 
 .holiday-item:hover {
@@ -826,7 +891,7 @@ input[type="password"]:focus {
     font-weight: 700;
 }
 
-/* Legend */
+/* Legend - Updated Colors */
 .legend {
     background: white;
     padding: 28px;
@@ -872,29 +937,30 @@ input[type="password"]:focus {
     border: 3px solid rgba(0, 0, 0, 0.2);
 }
 
+/* NEW LEGEND COLORS */
 .wfo-color {
-    background: #90EE90;
-    border-color: #4caf50;
+    background: #4CAF50; /* Solid Green */
+    border-color: #2E7D32;
 }
 
 .planned-color {
-    background: #FFFF99;
-    border-color: #fbc02d;
+    background: #FF9800; /* Solid Orange */
+    border-color: #E65100;
 }
 
 .offsite-color {
-    background: #DDA0DD;
-    border-color: #9c27b0;
+    background: #9C27B0; /* Solid Purple */
+    border-color: #6A1B9A;
 }
 
 .travel-color {
-    background: #87CEEB;
-    border-color: #2196f3;
+    background: #2196F3; /* Solid Blue */
+    border-color: #0D47A1;
 }
 
 .leave-color {
-    background: #FFB6C1;
-    border-color: #e91e63;
+    background: #F44336; /* Solid Red */
+    border-color: #C62828;
 }
 
 .weekend-color {
@@ -908,13 +974,13 @@ input[type="password"]:focus {
 }
 
 .optional-holiday-color {
-    background: #d1c4e9;
-    border-color: #7e57c2;
+    background: #FF00FF; /* MAGENTA */
+    border-color: #C700C7;
 }
 
 .total-color {
-    background: #2196f3;
-    border-color: #1976d2;
+    background: #001965;
+    border-color: #000D33;
 }
 
 .legend-item span:last-child {
@@ -1020,7 +1086,7 @@ input[type="password"]:focus {
     background: #e3f2fd;
 }
 
-/* Hover Popup Menu - Capsule Style */
+/* Hover Popup Menu - Capsule Style - Updated Colors */
 .status-popup {
     position: fixed;
     background: white;
@@ -1065,60 +1131,61 @@ input[type="password"]:focus {
     color: #999 !important;
 }
 
+/* NEW POPUP MENU COLORS */
 .status-popup-item.wfo-option {
-    background: #90EE90;
-    color: #1b5e20;
+    background: #4CAF50;
+    color: white;
 }
 
 .status-popup-item.wfo-option:hover {
-    background: #7de67d;
+    background: #388E3C;
 }
 
 .status-popup-item.planned-option {
-    background: #FFFF99;
-    color: #f57f00;
+    background: #FF9800;
+    color: white;
 }
 
 .status-popup-item.planned-option:hover {
-    background: #ffff66;
+    background: #F57C00;
 }
 
 .status-popup-item.offsite-option {
-    background: #DDA0DD;
-    color: #6a1b9a;
+    background: #9C27B0;
+    color: white;
 }
 
 .status-popup-item.offsite-option:hover {
-    background: #d98cd9;
+    background: #7B1FA2;
 }
 
 .status-popup-item.travel-option {
-    background: #87CEEB;
-    color: #01579b;
+    background: #2196F3;
+    color: white;
 }
 
 .status-popup-item.travel-option:hover {
-    background: #6fc4e8;
+    background: #1976D2;
 }
 
 .status-popup-item.leave-option {
-    background: #FFB6C1;
-    color: #c62828;
+    background: #F44336;
+    color: white;
 }
 
 .status-popup-item.leave-option:hover {
-    background: #ff9eaa;
+    background: #D32F2F;
 }
 
 .status-popup-item.oh1-option,
 .status-popup-item.oh2-option {
-    background: #d1c4e9;
-    color: #4a148c;
+    background: #FF00FF; /* MAGENTA */
+    color: white;
 }
 
 .status-popup-item.oh1-option:hover,
 .status-popup-item.oh2-option:hover {
-    background: #b39ddb;
+    background: #E600E6; /* Darker Magenta */
 }
 
 .status-popup-item.clear-option {
@@ -1136,7 +1203,7 @@ input[type="password"]:focus {
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    border: 2px solid rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.5);
     flex-shrink: 0;
 }
 
@@ -1150,6 +1217,15 @@ input[type="password"]:focus {
     .action-bar {
         flex-direction: column;
         align-items: stretch;
+    }
+    
+    .controls-group {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    #userSearchInput {
+        min-width: 100%;
     }
     
     .stats-grid,
@@ -1202,7 +1278,8 @@ input[type="password"]:focus {
     .logout-btn,
     .submit-btn,
     .report-btn,
-    .export-btn {
+    .export-btn,
+    .user-search {
         display: none;
     }
     

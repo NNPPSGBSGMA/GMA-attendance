@@ -12,6 +12,7 @@ let attendanceData = {};
 let pendingChanges = {};
 let hasUnsavedChanges = false;
 let activePopup = null;
+let filteredUsers = [];
 
 const HOLIDAYS_2026 = [
     '2026-01-15', '2026-01-26', '2026-03-19', '2026-05-01',
@@ -35,11 +36,11 @@ const OPTIONAL_HOLIDAYS_2026 = [
 const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const STATUS_OPTIONS = [
-    { value: 'wfo', label: 'WFO', color: '#90EE90' },
-    { value: 'planned', label: 'Planned', color: '#FFFF99' },
-    { value: 'offsite', label: 'Offsite/Meeting', color: '#DDA0DD' },
-    { value: 'travel', label: 'Onsite/Travel', color: '#87CEEB' },
-    { value: 'leave', label: 'Leave', color: '#FFB6C1' }
+    { value: 'wfo', label: 'WFO', color: '#4CAF50' },
+    { value: 'planned', label: 'Planned', color: '#FF9800' },
+    { value: 'offsite', label: 'Offsite/Meeting', color: '#9C27B0' },
+    { value: 'travel', label: 'Onsite/Travel', color: '#2196F3' },
+    { value: 'leave', label: 'Leave', color: '#F44336' }
 ];
 
 // User Photos - Add actual photo URLs here
@@ -62,14 +63,14 @@ async function loadUserDatabase() {
         if (response.ok) {
             const data = await response.json();
             USERS_CACHE = data.record.users || {};
-            console.log('? User database loaded:', Object.keys(USERS_CACHE).length, 'users');
+            console.log('✅ User database loaded:', Object.keys(USERS_CACHE).length, 'users');
             return true;
         } else {
-            console.error('? Failed to load user database');
+            console.error('❌ Failed to load user database');
             return false;
         }
     } catch (error) {
-        console.error('? Error loading user database:', error);
+        console.error('❌ Error loading user database:', error);
         return false;
     }
 }
@@ -96,7 +97,7 @@ async function handleLogin() {
         return;
     }
     
-    console.log('? Checking credentials for:', code);
+    console.log('🔍 Checking credentials for:', code);
     
     if (USERS_CACHE[code] && USERS_CACHE[code].password === password) {
         currentLoggedInUser = {
@@ -105,7 +106,7 @@ async function handleLogin() {
             name: USERS_CACHE[code].name
         };
         
-        console.log('? Login successful for:', code);
+        console.log('✅ Login successful for:', code);
         
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
@@ -118,7 +119,7 @@ async function handleLogin() {
             document.getElementById('reportBtn').style.display = 'inline-block';
         }
         
-        console.log('? Initializing calendar...');
+        console.log('📅 Initializing calendar...');
         initializeCalendar();
         
     } else {
@@ -136,10 +137,12 @@ function handleLogout() {
     if (confirm('Are you sure you want to logout? Any unsaved changes will be lost.')) {
         currentLoggedInUser = null;
         USERS_CACHE = {};
+        filteredUsers = [];
         document.getElementById('mainApp').style.display = 'none';
         document.getElementById('loginOverlay').style.display = 'flex';
         document.getElementById('loginCode').value = '';
         document.getElementById('loginPassword').value = '';
+        document.getElementById('userSearchInput').value = '';
         document.getElementById('adminNotice').style.display = 'none';
         document.getElementById('reportBtn').style.display = 'none';
         document.getElementById('statsContainer').style.display = 'none';
@@ -161,11 +164,51 @@ function getUserCodes() {
     return Object.keys(USERS_CACHE);
 }
 
+// ==================== USER SEARCH FILTER ====================
+
+function filterUsers() {
+    const searchInput = document.getElementById('userSearchInput').value.toUpperCase().trim();
+    const clearBtn = document.getElementById('clearSearchBtn');
+    
+    if (searchInput === '') {
+        filteredUsers = [];
+        clearBtn.style.display = 'none';
+        renderCalendar();
+        return;
+    }
+    
+    clearBtn.style.display = 'inline-block';
+    
+    // Split by comma and clean up
+    const searchCodes = searchInput.split(',').map(code => code.trim()).filter(code => code.length > 0);
+    
+    if (searchCodes.length === 0) {
+        filteredUsers = [];
+        renderCalendar();
+        return;
+    }
+    
+    // Filter users that match search codes
+    const allUsers = getUserCodes();
+    filteredUsers = allUsers.filter(userCode => {
+        return searchCodes.some(searchCode => userCode.includes(searchCode));
+    });
+    
+    renderCalendar();
+}
+
+function clearSearch() {
+    document.getElementById('userSearchInput').value = '';
+    filteredUsers = [];
+    document.getElementById('clearSearchBtn').style.display = 'none';
+    renderCalendar();
+}
+
 // ==================== CALENDAR FUNCTIONS ====================
 
 function initializeCalendar() {
-    console.log('? initializeCalendar called');
-    console.log('? Available users:', getUserCodes().length);
+    console.log('📅 initializeCalendar called');
+    console.log('👥 Available users:', getUserCodes().length);
     loadAttendanceData();
 }
 
@@ -180,13 +223,13 @@ async function loadAttendanceData() {
         if (response.ok) {
             const data = await response.json();
             attendanceData = data.record || {};
-            console.log('? Attendance data loaded');
+            console.log('✅ Attendance data loaded');
         } else {
-            console.log('?? No attendance data found, starting fresh');
+            console.log('ℹ️ No attendance data found, starting fresh');
             attendanceData = {};
         }
     } catch (error) {
-        console.error('? Error loading attendance data:', error);
+        console.error('❌ Error loading attendance data:', error);
         attendanceData = {};
     }
     
@@ -205,16 +248,16 @@ async function saveAttendanceData() {
         });
         
         if (response.ok) {
-            console.log('? Data saved to server');
+            console.log('✅ Data saved to server');
             return true;
         } else {
             const errorData = await response.json();
-            console.error('? Failed to save:', errorData);
+            console.error('❌ Failed to save:', errorData);
             alert('Failed to save data: ' + (errorData.message || 'Unknown error'));
             return false;
         }
     } catch (error) {
-        console.error('? Error saving data:', error);
+        console.error('❌ Error saving data:', error);
         alert('Error saving data. Check console for details.');
         return false;
     }
@@ -266,13 +309,20 @@ function getUserPhotoUrl(userCode) {
 }
 
 function renderCalendar() {
-    console.log('? Rendering calendar...');
+    console.log('🖼️ Rendering calendar...');
     
-    const userCodes = getUserCodes();
-    console.log('? Rendering for users:', userCodes);
+    let userCodes = getUserCodes();
+    
+    // Apply filter if search is active
+    if (filteredUsers.length > 0) {
+        userCodes = filteredUsers;
+        console.log('🔍 Filtered to users:', userCodes);
+    }
+    
+    console.log('📋 Rendering for users:', userCodes);
     
     if (!userCodes || userCodes.length === 0) {
-        console.error('? No users available to render calendar');
+        console.error('❌ No users available to render calendar');
         const table = document.getElementById('attendanceTable');
         table.innerHTML = '<tr><td style="padding: 20px; text-align: center; color: red;">Error: No user data available. Please logout and login again.</td></tr>';
         return;
@@ -424,7 +474,7 @@ function renderCalendar() {
     });
     
     document.getElementById('monthSelector').value = currentMonth;
-    console.log('? Calendar rendered successfully with', userCodes.length, 'users');
+    console.log('✅ Calendar rendered successfully with', userCodes.length, 'users');
     
     checkAndDisplayStats();
 }
@@ -484,7 +534,7 @@ function handleOptionalHolidayClick(cell, userCode, dateKey, day, month) {
     
     const oh1Indicator = document.createElement('div');
     oh1Indicator.className = 'status-color-indicator';
-    oh1Indicator.style.background = '#d1c4e9';
+    oh1Indicator.style.background = '#7E57C2';
     
     const oh1Label = document.createElement('span');
     oh1Label.textContent = 'Optional Holiday 1';
@@ -516,7 +566,7 @@ function handleOptionalHolidayClick(cell, userCode, dateKey, day, month) {
     
     const oh2Indicator = document.createElement('div');
     oh2Indicator.className = 'status-color-indicator';
-    oh2Indicator.style.background = '#d1c4e9';
+    oh2Indicator.style.background = '#7E57C2';
     
     const oh2Label = document.createElement('span');
     oh2Label.textContent = 'Optional Holiday 2';
@@ -543,7 +593,7 @@ function handleOptionalHolidayClick(cell, userCode, dateKey, day, month) {
     if (currentStatus) {
         const clearItem = document.createElement('div');
         clearItem.className = 'status-popup-item clear-option';
-        clearItem.innerHTML = '<span style="font-size: 16px;">\u{1f5d1}</span><span>Clear Status</span>';
+        clearItem.innerHTML = '<span style="font-size: 16px;">🗑️</span><span>Clear Status</span>';
         
         clearItem.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -603,7 +653,7 @@ function handleCellClick(cell, userCode, dateKey, day, month) {
     if (attendanceData[userCode] && attendanceData[userCode][dateKey]) {
         const clearItem = document.createElement('div');
         clearItem.className = 'status-popup-item clear-option';
-        clearItem.innerHTML = '<span style="font-size: 16px;">\u{1f5d1}</span><span>Clear Status</span>';
+        clearItem.innerHTML = '<span style="font-size: 16px;">🗑️</span><span>Clear Status</span>';
         
         clearItem.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -728,7 +778,7 @@ async function submitAttendance() {
         document.getElementById('pendingChanges').style.display = 'none';
         
         const successMsg = document.getElementById('successMessage');
-        successMsg.textContent = '? Data saved to server! Everyone can now see your changes.';
+        successMsg.textContent = '✅ Data saved to server! Everyone can now see your changes.';
         successMsg.style.display = 'block';
         setTimeout(() => {
             successMsg.style.display = 'none';
@@ -843,12 +893,12 @@ function renderComplianceBox() {
     let statusText = 'Below Target';
     if (compliance.percentage >= compliance.required) {
         statusClass = 'success';
-        statusText = '\u2705 Target Achieved!';
+        statusText = '✅ Target Achieved!';
     } else if (compliance.percentage >= 50) {
         statusClass = 'warning';
-        statusText = '\u25B2 Approaching Target';
+        statusText = '▲ Approaching Target';
     } else {
-        statusText = '\u25BC Below Target';
+        statusText = '▼ Below Target';
     }
     
     complianceBox.innerHTML = `
