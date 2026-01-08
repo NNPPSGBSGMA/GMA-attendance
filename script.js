@@ -43,11 +43,13 @@ const STATUS_OPTIONS = [
     { value: 'leave', label: 'Leave', color: '#F44336' }
 ];
 
-// User Photos - Add actual photo URLs here
+// User Photos - REPLACE THIS URL WITH YOUR SERVER LINK
+const USER_PHOTO_URL = 'people.svg';
+
 const USER_PHOTOS = {
-    'XXXX': 'https://via.placeholder.com/40/001965/ffffff?text=XX',
-    'YYYY': 'https://via.placeholder.com/40/001965/ffffff?text=YY',
-    'ZZZZ': 'https://via.placeholder.com/40/001965/ffffff?text=ZZ',
+    // All users will use the same icon from server
+    // You can add individual user photos here if needed
+    // 'XXXX': 'https://your-server.com/custom-photo.png',
 };
 
 // ==================== AUTHENTICATION ====================
@@ -63,14 +65,14 @@ async function loadUserDatabase() {
         if (response.ok) {
             const data = await response.json();
             USERS_CACHE = data.record.users || {};
-            console.log('✅ User database loaded:', Object.keys(USERS_CACHE).length, 'users');
+            console.log('? User database loaded:', Object.keys(USERS_CACHE).length, 'users');
             return true;
         } else {
-            console.error('❌ Failed to load user database');
+            console.error('? Failed to load user database');
             return false;
         }
     } catch (error) {
-        console.error('❌ Error loading user database:', error);
+        console.error('? Error loading user database:', error);
         return false;
     }
 }
@@ -97,7 +99,7 @@ async function handleLogin() {
         return;
     }
     
-    console.log('🔍 Checking credentials for:', code);
+    console.log('? Checking credentials for:', code);
     
     if (USERS_CACHE[code] && USERS_CACHE[code].password === password) {
         currentLoggedInUser = {
@@ -106,7 +108,7 @@ async function handleLogin() {
             name: USERS_CACHE[code].name
         };
         
-        console.log('✅ Login successful for:', code);
+        console.log('? Login successful for:', code);
         
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
@@ -119,7 +121,7 @@ async function handleLogin() {
             document.getElementById('reportBtn').style.display = 'inline-block';
         }
         
-        console.log('📅 Initializing calendar...');
+        console.log('? Initializing calendar...');
         initializeCalendar();
         
     } else {
@@ -207,8 +209,8 @@ function clearSearch() {
 // ==================== CALENDAR FUNCTIONS ====================
 
 function initializeCalendar() {
-    console.log('📅 initializeCalendar called');
-    console.log('👥 Available users:', getUserCodes().length);
+    console.log('? initializeCalendar called');
+    console.log('? Available users:', getUserCodes().length);
     loadAttendanceData();
 }
 
@@ -223,13 +225,13 @@ async function loadAttendanceData() {
         if (response.ok) {
             const data = await response.json();
             attendanceData = data.record || {};
-            console.log('✅ Attendance data loaded');
+            console.log('? Attendance data loaded');
         } else {
-            console.log('ℹ️ No attendance data found, starting fresh');
+            console.log('?? No attendance data found, starting fresh');
             attendanceData = {};
         }
     } catch (error) {
-        console.error('❌ Error loading attendance data:', error);
+        console.error('? Error loading attendance data:', error);
         attendanceData = {};
     }
     
@@ -248,16 +250,16 @@ async function saveAttendanceData() {
         });
         
         if (response.ok) {
-            console.log('✅ Data saved to server');
+            console.log('? Data saved to server');
             return true;
         } else {
             const errorData = await response.json();
-            console.error('❌ Failed to save:', errorData);
+            console.error('? Failed to save:', errorData);
             alert('Failed to save data: ' + (errorData.message || 'Unknown error'));
             return false;
         }
     } catch (error) {
-        console.error('❌ Error saving data:', error);
+        console.error('? Error saving data:', error);
         alert('Error saving data. Check console for details.');
         return false;
     }
@@ -301,28 +303,44 @@ function formatDate(day, month) {
 }
 
 function getUserPhotoUrl(userCode) {
+    // Check if custom photo exists for this user
     if (USER_PHOTOS[userCode]) {
         return USER_PHOTOS[userCode];
     }
-    const initials = userCode.substring(0, 2);
-    return `https://ui-avatars.com/api/?name=${initials}&background=001965&color=ffffff&size=40&bold=true`;
+    
+    // Return the server URL - REPLACE THIS WITH YOUR SERVER LINK
+    // For now, using SVG as fallback until you provide server URL
+    const svgIcon = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="40" height="40">
+            <circle cx="64" cy="64" r="64" fill="#001965"/>
+            <g fill="white">
+                <circle cx="64" cy="48" r="20"/>
+                <path d="M64 72c-16 0-32 8-32 16v8h64v-8c0-8-16-16-32-16z"/>
+            </g>
+        </svg>
+    `;
+    
+    return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svgIcon);
+    
+    // UNCOMMENT THIS LINE WHEN YOU HAVE YOUR SERVER URL:
+    // return USER_PHOTO_URL;
 }
 
 function renderCalendar() {
-    console.log('🖼️ Rendering calendar...');
+    console.log('?? Rendering calendar...');
     
     let userCodes = getUserCodes();
     
     // Apply filter if search is active
     if (filteredUsers.length > 0) {
         userCodes = filteredUsers;
-        console.log('🔍 Filtered to users:', userCodes);
+        console.log('? Filtered to users:', userCodes);
     }
     
-    console.log('📋 Rendering for users:', userCodes);
+    console.log('? Rendering for users:', userCodes);
     
     if (!userCodes || userCodes.length === 0) {
-        console.error('❌ No users available to render calendar');
+        console.error('? No users available to render calendar');
         const table = document.getElementById('attendanceTable');
         table.innerHTML = '<tr><td style="padding: 20px; text-align: center; color: red;">Error: No user data available. Please logout and login again.</td></tr>';
         return;
@@ -381,7 +399,17 @@ function renderCalendar() {
         thumbnail.src = getUserPhotoUrl(userCode);
         thumbnail.alt = userCode;
         thumbnail.onerror = function() {
-            this.src = `https://ui-avatars.com/api/?name=${userCode.substring(0,2)}&background=001965&color=ffffff&size=40&bold=true`;
+            // Fallback to SVG if image fails to load
+            const svgIcon = `
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="40" height="40">
+                    <circle cx="64" cy="64" r="64" fill="#001965"/>
+                    <g fill="white">
+                        <circle cx="64" cy="48" r="20"/>
+                        <path d="M64 72c-16 0-32 8-32 16v8h64v-8c0-8-16-16-32-16z"/>
+                    </g>
+                </svg>
+            `;
+            this.src = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svgIcon);
         };
         
         const userName = document.createElement('span');
@@ -474,7 +502,7 @@ function renderCalendar() {
     });
     
     document.getElementById('monthSelector').value = currentMonth;
-    console.log('✅ Calendar rendered successfully with', userCodes.length, 'users');
+    console.log('? Calendar rendered successfully with', userCodes.length, 'users');
     
     checkAndDisplayStats();
 }
@@ -534,7 +562,7 @@ function handleOptionalHolidayClick(cell, userCode, dateKey, day, month) {
     
     const oh1Indicator = document.createElement('div');
     oh1Indicator.className = 'status-color-indicator';
-    oh1Indicator.style.background = '#7E57C2';
+    oh1Indicator.style.background = '#FF00FF';
     
     const oh1Label = document.createElement('span');
     oh1Label.textContent = 'Optional Holiday 1';
@@ -566,7 +594,7 @@ function handleOptionalHolidayClick(cell, userCode, dateKey, day, month) {
     
     const oh2Indicator = document.createElement('div');
     oh2Indicator.className = 'status-color-indicator';
-    oh2Indicator.style.background = '#7E57C2';
+    oh2Indicator.style.background = '#FF00FF';
     
     const oh2Label = document.createElement('span');
     oh2Label.textContent = 'Optional Holiday 2';
@@ -593,7 +621,7 @@ function handleOptionalHolidayClick(cell, userCode, dateKey, day, month) {
     if (currentStatus) {
         const clearItem = document.createElement('div');
         clearItem.className = 'status-popup-item clear-option';
-        clearItem.innerHTML = '<span style="font-size: 16px;">🗑️</span><span>Clear Status</span>';
+        clearItem.innerHTML = '<span style="font-size: 16px;">\u{1f5d1}</span><span>Clear Status</span>';
         
         clearItem.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -653,7 +681,7 @@ function handleCellClick(cell, userCode, dateKey, day, month) {
     if (attendanceData[userCode] && attendanceData[userCode][dateKey]) {
         const clearItem = document.createElement('div');
         clearItem.className = 'status-popup-item clear-option';
-        clearItem.innerHTML = '<span style="font-size: 16px;">🗑️</span><span>Clear Status</span>';
+        clearItem.innerHTML = '<span style="font-size: 16px;">\u{1f5d1}</span><span>Clear Status</span>';
         
         clearItem.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -778,7 +806,7 @@ async function submitAttendance() {
         document.getElementById('pendingChanges').style.display = 'none';
         
         const successMsg = document.getElementById('successMessage');
-        successMsg.textContent = '✅ Data saved to server! Everyone can now see your changes.';
+        successMsg.textContent = '? Data saved to server! Everyone can now see your changes.';
         successMsg.style.display = 'block';
         setTimeout(() => {
             successMsg.style.display = 'none';
@@ -893,12 +921,12 @@ function renderComplianceBox() {
     let statusText = 'Below Target';
     if (compliance.percentage >= compliance.required) {
         statusClass = 'success';
-        statusText = '✅ Target Achieved!';
+        statusText = '\u2705 Target Achieved!';
     } else if (compliance.percentage >= 50) {
         statusClass = 'warning';
-        statusText = '▲ Approaching Target';
+        statusText = '\u25B2 Approaching Target';
     } else {
-        statusText = '▼ Below Target';
+        statusText = '\u25BC Below Target';
     }
     
     complianceBox.innerHTML = `
