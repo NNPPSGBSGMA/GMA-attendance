@@ -806,7 +806,7 @@ async function submitAttendance() {
         document.getElementById('pendingChanges').style.display = 'none';
         
         const successMsg = document.getElementById('successMessage');
-        successMsg.textContent = '? Data saved to server! Everyone can now see your changes.';
+        successMsg.textContent = '\f0c7 Data saved to server! Everyone can now see your changes.';
         successMsg.style.display = 'block';
         setTimeout(() => {
             successMsg.style.display = 'none';
